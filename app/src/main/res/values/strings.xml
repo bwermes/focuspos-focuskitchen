@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Focus Kitchen</string>
+    <string name="venue_id">Venue ID</string>
+    <string name="license_count">Claim an available license?</string>
+</resources>

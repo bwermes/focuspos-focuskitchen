@@ -1,0 +1,49 @@
+{
+  "items": [
+    {
+      "type": "Parent",
+      "id": 1,
+      "parentItemId": 0,
+      "quantity": 1.0,
+      "itemRecordNumber": 390,
+      "itemName": "BELT Sandwich",
+      "remoteName": " 1 BELT Sandwich",
+      "course": "Unknown",
+      "position": 0,
+      "level": 0,
+      "price": 0.0,
+      "cookTime": 0,
+      "voided": false
+    },
+    {
+      "type": "Child",
+      "id": 2,
+      "parentItemId": 1,
+      "quantity": 1.0,
+      "itemRecordNumber": 625,
+      "itemName": "Fruit",
+      "remoteName": "    Fruit",
+      "course": null,
+      "position": 0,
+      "level": 1,
+      "price": 0.0,
+      "cookTime": 0,
+      "voided": false
+    }
+  ],
+  "printerId": 1,
+  "printerName": "1 - Brandon",
+  "revenueCenter": "Cafe",
+  "orderType": "Cafe",
+  "server": "FocusPOS",
+  "serverNotOwner": "FocusPOS",
+  "time": "2019-12-09T07:14:00",
+  "date": "2019-12-09T00:00:00",
+  "station": "01 - Exp Right",
+  "table": "Table 104",
+  "check": "Check 9",
+  "guests": 4,
+  "delayTime": 0,
+  "orderDisplayTime": "2019-12-09T07:14:00",
+  "customerName": ""
+}
