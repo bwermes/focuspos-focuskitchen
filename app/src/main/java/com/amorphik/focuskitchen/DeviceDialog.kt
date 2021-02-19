@@ -10,6 +10,7 @@ import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.fragment.app.FragmentManager
+import com.example.focuskitchen.OrderAdapter
 import okhttp3.WebSocket
 
 // Dialog popup to show device details as well as allowing resetting license and clearing orders
