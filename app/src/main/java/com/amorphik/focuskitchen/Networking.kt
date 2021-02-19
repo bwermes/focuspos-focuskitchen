@@ -1,10 +1,10 @@
-package com.example.focuskitchen
+package com.amorphik.focuskitchen
 
 import okhttp3.*
 import java.io.IOException
 import okhttp3.RequestBody.Companion.toRequestBody
 
-class Networking {
+class       Networking {
 
     companion object {
         fun fetchJson(url: String, headerName: String, headerValue: String, performOnCallback: (Call, Response?, String) -> Unit) {

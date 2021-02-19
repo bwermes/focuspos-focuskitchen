@@ -1,4 +1,4 @@
-package com.example.focuskitchen
+package com.amorphik.focuskitchen
 
 import android.content.Context
 import android.view.GestureDetector

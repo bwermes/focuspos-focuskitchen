@@ -1,4 +1,4 @@
-package com.example.focuskitchen
+package com.amorphik.focuskitchen
 
 class VenueLicense(val key: String,
                    val name: String?,

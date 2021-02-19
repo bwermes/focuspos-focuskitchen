@@ -1,4 +1,4 @@
-package com.example.focuskitchen
+package com.amorphik.focuskitchen
 
 import android.app.AlertDialog
 import android.app.Dialog

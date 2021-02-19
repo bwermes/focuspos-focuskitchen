@@ -1,4 +1,4 @@
-package com.example.focuskitchen
+package com.amorphik.focuskitchen
 
 class Order (val printerId: Int,
              val printerName: String,

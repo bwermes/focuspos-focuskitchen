@@ -1,4 +1,4 @@
-package com.example.focuskitchen
+package com.amorphik.focuskitchen
 
 class DeviceDetails {
     // Display info for showing info properly

@@ -1,4 +1,4 @@
-package com.example.focuskitchen
+package com.amorphik.focuskitchen
 
 class OrderItem(val type: String,
                 val id: Int,

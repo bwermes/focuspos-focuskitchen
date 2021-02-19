@@ -1,4 +1,4 @@
-package com.example.focuskitchen
+package com.amorphik.focuskitchen
 
 import android.util.Base64
 import javax.crypto.Mac

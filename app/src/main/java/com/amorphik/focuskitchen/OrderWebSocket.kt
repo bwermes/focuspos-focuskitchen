@@ -1,4 +1,4 @@
-package com.example.focuskitchen
+package com.amorphik.focuskitchen
 
 import android.graphics.Color
 import android.media.MediaPlayer

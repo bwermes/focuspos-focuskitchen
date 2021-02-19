@@ -1,4 +1,4 @@
-package com.example.focuskitchen
+package com.amorphik.focuskitchen
 
 class OrderAdapterDataItem (val isModifier: Boolean,
                             val isHeader: Boolean,

@@ -19,7 +19,6 @@ import com.google.android.flexbox.FlexboxLayoutManager
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.header_cell.view.*
 import kotlinx.android.synthetic.main.order_cell.view.*
-import java.lang.Exception
 import java.util.*
 import kotlin.concurrent.thread
 
@@ -336,13 +335,9 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
     }
     private fun updateSavedOrders() {
         val editor = credentials.prefs.edit()
-        try {
-            val ordersAsJson = Klaxon().toJsonString(OrdersModel.orders)
-            editor.putString(credentials.PREFS_ORDERS_KEY, ordersAsJson)
-            editor.apply()
-        } catch (exception: Exception){
-            print(exception.message)
-        }
+        val ordersAsJson = Klaxon().toJsonString(OrdersModel.orders)
+        editor.putString(credentials.PREFS_ORDERS_KEY, ordersAsJson)
+        editor.apply()
     }
     private fun constructOrderItem(holder: OrderViewHolder, position: Int) {
         if (!dataSet[position].isHeader) {
@@ -358,11 +353,8 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
             }
 
             if (dataSet[position].voided) {
-                // Text as spannable
                 itemText.setText(itemText.text, TextView.BufferType.SPANNABLE)
                 val spannable: Spannable = itemText.text as Spannable
-
-                // Only strikethrough letters
                 var spot = 0
                 for (i in 0.until(itemText.text.length)) {
                     if (itemText.text[i] != ' ') {
@@ -370,14 +362,8 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
                         break
                     }
                 }
-
-                // Perform strikethrough
                 spannable.setSpan(StrikethroughSpan(), spot, itemText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 itemText.paintFlags = itemText.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
-            } else {
-                // remove strikethrough
-                itemText.setText(itemText.text, TextView.BufferType.SPANNABLE)
-                itemText.paintFlags = 0
             }
 
             itemCheckMark.alpha = if (dataSet[position].isTagged) 1.0f else 0.0f
@@ -398,8 +384,7 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
                 holder.view.header_overlay.setBackgroundColor(Color.MAGENTA)
                 holder.view.header_layout.setBackgroundColor(Color.MAGENTA)
             } else {
-                if (dataSet[position].minutesInSystem < credentials.urgentTime
-                    || credentials.urgentTime == 0) {
+                if (dataSet[position].minutesInSystem < credentials.urgentTime) {
                     holder.view.header_overlay.setBackgroundColor(Color.rgb(0, 153, 204))
                     holder.view.header_layout.setBackgroundColor(Color.rgb(0, 153, 204))
                 } else {

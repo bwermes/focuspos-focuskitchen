@@ -5,6 +5,14 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 android {
+    signingConfigs {
+        SigningConfig {
+            storeFile file('/Volumes/GoogleDrive/My Drive/Brandon\'s Support Stuff/Amazon EC2 Keypairs/App Signatures/FocusKitchen')
+            storePassword 'b801381d-974c-4847-a82a-b4003db5110f'
+            keyAlias 'key0'
+            keyPassword 'ec7e382d-7a66-4423-8275-b6e6e7ae57d6'
+        }
+    }
     compileSdkVersion 29
     buildToolsVersion "29.0.2"
     defaultConfig {

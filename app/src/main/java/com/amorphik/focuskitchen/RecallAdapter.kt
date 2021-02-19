@@ -1,10 +1,8 @@
-package com.example.focuskitchen
+package com.amorphik.focuskitchen
 
 import android.content.res.Resources
 import android.graphics.Color
-import android.opengl.Visibility
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.OvershootInterpolator
@@ -13,7 +11,6 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.beust.klaxon.Klaxon
-import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.header_cell.view.*
 import kotlinx.android.synthetic.main.order_cell.view.*
 
