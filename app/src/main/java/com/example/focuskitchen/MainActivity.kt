@@ -14,20 +14,15 @@ import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.beust.klaxon.Json
-import com.beust.klaxon.JsonArray
 import com.beust.klaxon.Klaxon
-import com.beust.klaxon.json
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexboxLayoutManager
 import kotlinx.android.synthetic.main.activity_main.*
 import okhttp3.*
 import org.json.JSONArray
-import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
-import kotlin.collections.ArrayList
 import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity() {
@@ -40,26 +35,34 @@ class MainActivity : AppCompatActivity() {
     var menuIsAnimating = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Init stuff
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         val policy = StrictMode.ThreadPolicy.Builder().permitAll().build()
         StrictMode.setThreadPolicy(policy)
+
+        // Build main layout and bumped orders
         orderRecyclerView_main.layoutManager = FlexboxLayoutManager(this, FlexDirection.COLUMN)
         recall_recycler_view.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
+
+        // Init device info
         setDeviceDetails()
         gatherCredentials()
 
         setupAdapters()
-        //timeAddsOrder()
-        timeShowsDeviceDetails()
+        //deviceNameAddsOrder()           Line can be uncommented to use JSON file to add orders (never deploy)
+        deviceNameShowsDeviceDetails() // If above line is uncommented, comment out this line (always deploy)
         checkDeviceRegistration()
         runWebsocket()
         layoutMenu()
 
+        // Set text size
         previous_orders_textView.textSize = DeviceDetails.defaultTextSize
         prev_order_count_textView.textSize = DeviceDetails.defaultTextSize
         more_indicator.textSize = DeviceDetails.defaultTextSize
+
+        // Bumped orders view gesture controls
         recall_recycler_view.setOnTouchListener(OnSwipeTouchListener(this) {
             gesture ->
 
@@ -69,10 +72,15 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
+        // Will run after layout has happened
+        // Need to do this for existing orders to load from saved and display properly
+        // Couldnt get it to work without the counter. 3rd time through it will remove this listener
         var counter = 0
         view.viewTreeObserver.addOnGlobalLayoutListener(object: ViewTreeObserver.OnGlobalLayoutListener {
             override fun onGlobalLayout() {
+
                 if (counter == 2) {
+                    // Used to purge specific key values a single time from memory if needed
                     if (!credentials.prefs.getBoolean("hasPurged1.0", false)) {
                         val editor = credentials.prefs.edit()
                         editor.putBoolean("hasPurged1.0", true)
@@ -80,6 +88,7 @@ class MainActivity : AppCompatActivity() {
                         editor.apply()
                     }
 
+                    // Add the existing orders
                     addExistingOrders()
                 }
                 counter++
@@ -90,12 +99,12 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-        venue_info_textView.text = credentials.deviceName
     }
 
     override fun onStart() {
         super.onStart()
 
+        // Hide nav bar and status bar
         val viewFlags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
 
         window.decorView.systemUiVisibility = viewFlags
@@ -103,6 +112,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
+
+        // Hide nav bar and status bar
         val viewFlags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
 
         window.decorView.systemUiVisibility = viewFlags
@@ -110,22 +121,30 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
+
+        // Close websock if app moves into closed state
         closeWebsocket("On stop")
     }
-    private fun timeAddsOrder() {
+
+    // Turns the device name label into a button to add orders
+    private fun deviceNameAddsOrder() {
         val orders = mutableListOf<Order>()
         for (i in 0..4) {
+            // Pull order from JSON file
             val order = Klaxon().parse<Order>(applicationContext.assets.open("order$i.JSON"))
             if (order != null) orders.add(order)
         }
         venue_info_textView.setOnClickListener {
+            // Choose a random order and add it
             val random = Random().nextInt(4)
             OrdersModel.addOrder(orders[random])
             saveOrdersToDevice()
             orderAdapter.notifyDataSetChanged()
         }
     }
-    private fun timeShowsDeviceDetails() {
+
+    // 5 taps on device name will show details
+    private fun deviceNameShowsDeviceDetails() {
         var tapCount = 0
         var startTime: Long = 0
         venue_info_textView.setOnClickListener {
@@ -142,6 +161,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+
     private fun checkDeviceRegistration() {
         val deviceWasRegistered = verifyCredentials(credentials)
         if (!deviceWasRegistered) {
@@ -174,6 +195,12 @@ class MainActivity : AppCompatActivity() {
                         credentials.deviceName = jsonResponse["name"] as String
                         credentials.venueKey = (jsonResponse["venueKey"] as Int).toString()
 
+                        if (venue_info_textView.text == "") {
+                            runOnUiThread {
+                                venue_info_textView.text = credentials.deviceName
+                            }
+                        }
+
                         // Save necessary info and proceed as if device had this info already saved
                         val editor = credentials.prefs.edit()
                         editor.putString(credentials.PREFS_LICENSE_KEY, credentials.licenseKey)
@@ -196,6 +223,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+    // Begin websocket
     private fun runWebsocket() {
         websocket_status_imageView.setOnClickListener {
             closeWebsocket("Socket status tapped")
@@ -213,7 +242,11 @@ class MainActivity : AppCompatActivity() {
         }
         websocketReconnection.run()
     }
-    private fun runTimer() {
+
+    // Timer ticks to update the time on the order headers as well as pulling held orders
+    private fun runUpdateTimer() {
+        val REPEAT_TIME = 60000L // Interval in ms for timer to tick (Long)
+
         val updateTime = object: Runnable {
             override fun run() {
                 val dataSet = orderAdapter.dataSet
@@ -237,15 +270,23 @@ class MainActivity : AppCompatActivity() {
                         // Format time displayed on header
                         // Should show as m:ss or mm:ss when hours are 0
                         // Should show as h:mm:ss when hours > 0
-                        var format = "%2d:%02d"
-                        var time = String.format(format, mins, seconds - (mins * 60))
+                        // Use string format to achieve wanted display format
+
+                        var format = "%2dm"
+                        var time = String.format(format, mins)
+                        if (mins < 1) {
+                            time = "<1m"
+                        }
                         if (hours > 0) {
-                            format = "%2d:%02d:%02d"
+                            format = "%2dh%02dm"
+                            if ((mins - (hours * 60)).toInt() == 0) {
+                                format = "%2dh"
+
+                            }
                             time = String.format(
                                 format,
                                 hours,
-                                mins - (hours * 60),
-                                seconds - (mins * 60)
+                                mins - (hours * 60)
                             )
                         }
 
@@ -261,6 +302,8 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
+                // Wont do anything if there are no orders held
+                // No impact w/ no held orders
                 var toRemove = mutableListOf<MutableList<OrderAdapterDataItem>>()
                 for (order in heldOrders) {
                     val orderHeader = order[0]
@@ -289,10 +332,12 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
+                // Dump and held orders that were moved over
                 if (toRemove.size > 0) {
                     heldOrders.removeAll(toRemove)
                 }
 
+                // Spin up new thread to save the delayed orders
                 thread {
                     val editor = credentials.prefs.edit()
                     val delayedOrdersJSON = Klaxon().toJsonString(OrdersModel.heldOrders)
@@ -300,14 +345,13 @@ class MainActivity : AppCompatActivity() {
                     editor.apply()
                 }
 
-                val handler = Handler(Looper.getMainLooper())
-                handler.postDelayed(this, 480)
-
-                if (venue_info_textView.text == "") {
-                    runOnUiThread {
-                        venue_info_textView.text = credentials.deviceName
-                    }
+                // Used to set device name after its retrieved from the back end
+                runOnUiThread {
+                    venue_info_textView.text = credentials.deviceName
                 }
+
+                val handler = Handler(Looper.getMainLooper())
+                handler.postDelayed(this, REPEAT_TIME)
             }
         }
 
@@ -317,6 +361,49 @@ class MainActivity : AppCompatActivity() {
             updateTime.run()
         }
     }
+
+    // Ticks every 30 mins to get printer id and name periodically
+    private fun runThirtyMinTimer() {
+        val updateTime = object: Runnable {
+            override fun run() {
+                if (credentials.licenseKey != "") {
+                    val signature = AuthGenerator.generateHash("${credentials.licenseKey}:${credentials.venueKey}:${credentials.macAddress}", credentials.licenseSecret)
+
+                    val payload = """{
+                                "key": "${credentials.licenseKey}",
+                                "signature": "$signature"
+                             }"""
+
+                    Networking.postData(url = "${credentials.baseApiUrl}licenses/verify",
+                        headerName = "Authorization",
+                        headerValue = credentials.generateDeviceLicenseHeader(),
+                        payload = payload) {
+                            call, response, responseBody ->
+
+                        if (response != null && response.code == 200) {
+                            val jsonResponse = Klaxon().parse<Map<String, Any>>(responseBody)
+                            println("verification response: $jsonResponse")
+                            credentials.printerNum = jsonResponse!!["printerId"].toString()
+                            credentials.deviceName = jsonResponse["name"].toString()
+                            fetchDevicePrefs(credentials)
+                        }
+                    }
+                }
+
+                println("THIRTY MIN TICK")
+                val handler = Handler(Looper.getMainLooper())
+                handler.postDelayed(this, 1800000)
+            }
+        }
+
+        val handler = Handler(Looper.getMainLooper())
+
+        handler.post {
+            updateTime.run()
+        }
+    }
+
+    // Determine layout for sliding bumped orders menu
     private fun layoutMenu () {
         menu_layout.layoutParams.width = (DeviceDetails.pixelWidth - DeviceDetails.DECORATION_SUM / DeviceDetails.COLUMN_COUNT) / DeviceDetails.COLUMN_COUNT
         menu_layout.viewTreeObserver.addOnGlobalLayoutListener(object: ViewTreeObserver.OnGlobalLayoutListener {
@@ -327,6 +414,8 @@ class MainActivity : AppCompatActivity() {
             }
         })
     }
+
+    // Setup display for the bumped orders menu
     private fun setupMenu() {
         var moveAmount: Float = menu_layout.width.toFloat()
         var menuVisible = false
@@ -354,6 +443,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Adapters hold the displayed orders
     private fun setupAdapters() {
         orderAdapter = createOrderAdapter()
         recallAdapter = createRecallAdapter()
@@ -370,6 +460,7 @@ class MainActivity : AppCompatActivity() {
         orderRecyclerView_main.itemAnimator = null
         adapter.credentials = credentials
 
+        // Wrap space threshold determines height available before wrapping to next column
         val dpOfHeader = 85
         val dpOfOrderItem = 40
         adapter.WRAP_SPACE_THRESHOLD = (((dpOfHeader) + (3 * dpOfOrderItem)) * Resources.getSystem().displayMetrics.density).toInt()
@@ -386,8 +477,10 @@ class MainActivity : AppCompatActivity() {
         recall_recycler_view.itemAnimator = null
         adapter.credentials = credentials
 
+        // Allows scrolling of order if its contents are longer than the screen
         recall_recycler_view.addOnScrollListener(object: RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                // Indicator to let user know there is more content
                 if ((recyclerView.layoutManager as LinearLayoutManager).findLastCompletelyVisibleItemPosition() == (recyclerView.layoutManager as LinearLayoutManager).itemCount - 1) {
                     more_indicator.alpha = 0f
                 } else {
@@ -401,6 +494,7 @@ class MainActivity : AppCompatActivity() {
         return adapter
     }
 
+    // Import existing orders saved in the system. Will happen at app relaunch
     private fun addExistingOrders() {
         if (credentials.prefs.getString(credentials.PREFS_ORDERS_KEY, null) != null) {
             val savedOrders = Klaxon().parseArray<OrderAdapterDataItem>(credentials.prefs.getString(credentials.PREFS_ORDERS_KEY, "[]")!!)!!
@@ -420,112 +514,117 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        runTimer()
+        runUpdateTimer()
+        runThirtyMinTimer()
     }
 
-    private fun addOrderToAdapter(order: Order) {
-        val orderType = order.orderType
-        val server = order.server
-        val table = order.table
-        val time = Date().time
-        val checkNum =  order.check
+    // Used to test manually adding orders
+//    private fun addOrderToAdapter(order: Order) {
+//        val orderType = order.orderType
+//        val server = order.server
+//        val table = order.table
+//        val time = Date().time
+//        val checkNum =  order.check
+//
+//        val headerItem = OrderAdapterDataItem(isModifier = false, isHeader = true, isLastItemInOrder = false, orderType = orderType,
+//            server = server, time = time, table = table, itemName = "", itemLevel = 0, checkNum = checkNum, voided = false, quantity = 0)
+//
+//        OrdersModel.orders.add(headerItem)
+//        for (i in 0.until(order.items.size)) {
+//            val item = order.items[i]
+//            val itemIsModifier = item.level > 0
+//            var remoteName = item.remoteName
+//            val lastItem = i == order.items.size - 1
+//            val quantity = item.quantity.toInt()
+//            val voided = item.voided
+//            for (i in 1..item.level) {
+//                remoteName = "   $remoteName"
+//            }
+//            if (item.level == 0) {
+//                remoteName = remoteName.subSequence(2, remoteName.length).toString()
+//            }
+//            val orderItem = OrderAdapterDataItem(isModifier = itemIsModifier, isHeader = false, isLastItemInOrder = lastItem,orderType = orderType,
+//                server = server, time = time, table = table, itemName = remoteName, itemLevel = item.level, checkNum = checkNum, voided = voided, quantity = quantity)
+//
+//            OrdersModel.orders.add(orderItem)
+//        }
+//    }
+//    private fun addSwipeGesture(adapter: RecallAdapter, direction: Int) {
+//        val callback = object: ItemTouchHelper.SimpleCallback(0, direction) {
+//            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+//                when (direction) {
+//                    ItemTouchHelper.LEFT -> adapter.moveToNextOrder()
+//                    ItemTouchHelper.RIGHT -> adapter.moveToPrevOrder()
+//                }
+//            }
+//
+//            override fun onMove(
+//                recyclerView: RecyclerView,
+//                viewHolder: RecyclerView.ViewHolder,
+//                target: RecyclerView.ViewHolder
+//            ): Boolean {
+//                return false
+//            }
+//
+//            override fun onChildDraw(
+//                c: Canvas,
+//                recyclerView: RecyclerView,
+//                viewHolder: RecyclerView.ViewHolder,
+//                dX: Float,
+//                dY: Float,
+//                actionState: Int,
+//                isCurrentlyActive: Boolean
+//            ) {
+//
+//                if (actionState == ItemTouchHelper.UP) {
+//                    viewHolder.itemView.translationY = 0f
+//                    viewHolder.itemView.translationX = 0f
+//                } else {
+//                    super.onChildDraw(
+//                        c,
+//                        recyclerView,
+//                        viewHolder,
+//                        dX,
+//                        dY,
+//                        actionState,
+//                        isCurrentlyActive
+//                    )
+//                }
+//            }
+//
+//            override fun getSwipeVelocityThreshold(defaultValue: Float): Float {
+//                // Default value is 1200
+//                // Default was too low to consistently react to swipe
+//                // Set to 2000 for more consistency
+//                return super.getSwipeVelocityThreshold(7000f)
+//            }
+//        }
+//
+//        val myHelper = ItemTouchHelper(callback)
+//        myHelper.attachToRecyclerView(recall_recycler_view)
+//    }
+//    private fun formatReceivedTime(time: String) : String{
+//        val timeFormat = SimpleDateFormat("EEE MMM dd HH:mm:ss z y", Locale.US)
+//        val date = timeFormat.parse(time)
+//        val formatDate = SimpleDateFormat("h:mm a", Locale.US)
+//        return if (date != null ) formatDate.format(date) else ""
+//    }
+//    private fun formatOrderTime(time: String) : String{
+//        // Takes the time received from the JSON payload and formats by swapping from 24hr to 12hr
+//        val timeFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+//        val date = timeFormat.parse(time)
+//        val formatDate = SimpleDateFormat("h:mm a", Locale.US)
+//        return if (date != null ) formatDate.format(date) else ""
+//    }
 
-        val headerItem = OrderAdapterDataItem(isModifier = false, isHeader = true, isLastItemInOrder = false, orderType = orderType,
-            server = server, time = time, table = table, itemName = "", itemLevel = 0, checkNum = checkNum, voided = false, quantity = 0)
-
-        OrdersModel.orders.add(headerItem)
-        for (i in 0.until(order.items.size)) {
-            val item = order.items[i]
-            val itemIsModifier = item.level > 0
-            var remoteName = item.remoteName
-            val lastItem = i == order.items.size - 1
-            val quantity = item.quantity.toInt()
-            val voided = item.voided
-            for (i in 1..item.level) {
-                remoteName = "   $remoteName"
-            }
-            if (item.level == 0) {
-                remoteName = remoteName.subSequence(2, remoteName.length).toString()
-            }
-            val orderItem = OrderAdapterDataItem(isModifier = itemIsModifier, isHeader = false, isLastItemInOrder = lastItem,orderType = orderType,
-                server = server, time = time, table = table, itemName = remoteName, itemLevel = item.level, checkNum = checkNum, voided = voided, quantity = quantity)
-
-            OrdersModel.orders.add(orderItem)
-        }
-    }
     private fun saveOrdersToDevice() {
         val editor = credentials.prefs.edit()
         val ordersAsJson = Klaxon().toJsonString(OrdersModel.orders)
         editor.putString(credentials.PREFS_ORDERS_KEY, ordersAsJson)
         editor.apply()
     }
-    private fun addSwipeGesture(adapter: RecallAdapter, direction: Int) {
-        val callback = object: ItemTouchHelper.SimpleCallback(0, direction) {
-            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                when (direction) {
-                    ItemTouchHelper.LEFT -> adapter.moveToNextOrder()
-                    ItemTouchHelper.RIGHT -> adapter.moveToPrevOrder()
-                }
-            }
 
-            override fun onMove(
-                recyclerView: RecyclerView,
-                viewHolder: RecyclerView.ViewHolder,
-                target: RecyclerView.ViewHolder
-            ): Boolean {
-                return false
-            }
-
-            override fun onChildDraw(
-                c: Canvas,
-                recyclerView: RecyclerView,
-                viewHolder: RecyclerView.ViewHolder,
-                dX: Float,
-                dY: Float,
-                actionState: Int,
-                isCurrentlyActive: Boolean
-            ) {
-
-                if (actionState == ItemTouchHelper.UP) {
-                    viewHolder.itemView.translationY = 0f
-                    viewHolder.itemView.translationX = 0f
-                } else {
-                    super.onChildDraw(
-                        c,
-                        recyclerView,
-                        viewHolder,
-                        dX,
-                        dY,
-                        actionState,
-                        isCurrentlyActive
-                    )
-                }
-            }
-
-            override fun getSwipeVelocityThreshold(defaultValue: Float): Float {
-                // Default value is 1200
-                // Default was too low to consistently react to swipe
-                // Set to 2000 for more consistency
-                return super.getSwipeVelocityThreshold(7000f)
-            }
-        }
-
-        val myHelper = ItemTouchHelper(callback)
-        myHelper.attachToRecyclerView(recall_recycler_view)
-    }
-    private fun formatReceivedTime(time: String) : String{
-        val timeFormat = SimpleDateFormat("EEE MMM dd HH:mm:ss z y", Locale.US)
-        val date = timeFormat.parse(time)
-        val formatDate = SimpleDateFormat("h:mm a", Locale.US)
-        return if (date != null ) formatDate.format(date) else ""
-    }
-    private fun formatOrderTime(time: String) : String{
-        // Takes the time received from the JSON payload and formats by swapping from 24hr to 12hr
-        val timeFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
-        val date = timeFormat.parse(time)
-        val formatDate = SimpleDateFormat("h:mm a", Locale.US)
-        return if (date != null ) formatDate.format(date) else ""
-    }
+    // Registration dialog functions
     private fun openDialog(status: String, errorCode: Int) {
         val registrationDialog = VenueDialog()
         registrationDialog.status = status
@@ -533,6 +632,7 @@ class MainActivity : AppCompatActivity() {
         registrationDialog.isCancelable = false
         registrationDialog.show(supportFragmentManager, "venueDialog")
     }
+
     private fun openDialog(credentials: DeviceCredentials, status: String) {
         val registrationDialog = VenueDialog()
         registrationDialog.status = status
@@ -540,18 +640,24 @@ class MainActivity : AppCompatActivity() {
         registrationDialog.isCancelable = false
         registrationDialog.show(supportFragmentManager, "venueDialog")
     }
+
+    // Display device details
     private fun showDeviceDetails() {
         val deviceDetailsDialog = DeviceDialog()
         deviceDetailsDialog.credentials = credentials
         deviceDetailsDialog.isCancelable = false
+        deviceDetailsDialog.supportFragmentManager = supportFragmentManager
         deviceDetailsDialog.show(supportFragmentManager, "deviceDialog")
         deviceDetailsDialog.orderAdapter = orderAdapter
+        deviceDetailsDialog.websocket = websocket
     }
+
     private fun verifyCredentials(credentials: DeviceCredentials) : Boolean {
         //Returns false if no credentials were found
         //Returns true if credentials were found
 
         if(credentials.licenseSecret == "") {
+            println("license secret null, credentials unverified")
             return false
         } else {
             val signature = AuthGenerator.generateHash("${credentials.licenseKey}:${credentials.venueKey}:${credentials.macAddress}", credentials.licenseSecret)
@@ -569,6 +675,8 @@ class MainActivity : AppCompatActivity() {
             return true
         }
     }
+
+    // Verify license is valid
     private fun handleVerification(call: Call, response: Response?, responseBody: String) {
         if (response != null && response.code >= 400) {
             openDialog("ERROR", response.code)
@@ -581,10 +689,13 @@ class MainActivity : AppCompatActivity() {
             openDialog("DISABLED", 0)
         } else {
             credentials.printerNum = jsonResponse["printerId"].toString()
+            credentials.deviceName = jsonResponse["name"].toString()
 
             fetchDeviceMode(credentials)
         }
     }
+
+    // Check if device should be running prod or dev
     private fun fetchDeviceMode(credentials: DeviceCredentials) {
         val url = "${credentials.baseApiUrl}stores/${credentials.venueKey}"
         val header = "Authorization"
@@ -614,6 +725,8 @@ class MainActivity : AppCompatActivity() {
             fetchDevicePrefs(credentials)
         }
     }
+
+    // Check back end for any device preferences
     private fun fetchDevicePrefs(credentials: DeviceCredentials) {
         val url = "${credentials.baseApiUrl}stores/${credentials.venueKey}/kitchendevicepreferences"
         val header = "Authorization"
@@ -631,6 +744,8 @@ class MainActivity : AppCompatActivity() {
             compareIp(credentials)
         }
     }
+
+    // Check device ip vs backend and update if necessary
     private fun compareIp(credentials: DeviceCredentials) {
         val currentIp = credentials.ipAddress
         val savedIp = credentials.prefs.getString(credentials.PREFS_IP_ADDR, "")
@@ -641,6 +756,7 @@ class MainActivity : AppCompatActivity() {
             updateIpAddress(credentials, currentIp)
         }
     }
+
     private fun updateIpAddress(credentials: DeviceCredentials, currentIp: String) {
         // Might not be implemented on the back end yet
         // Check w/ Brandon and Justin to see if this is
@@ -653,10 +769,13 @@ class MainActivity : AppCompatActivity() {
             println("update IP Addr response: $responseBody")
         }
     }
+
+    // Open WS for receiving orders
     private fun startWebSocket(credentials: DeviceCredentials, listener: OrderWebSocket) {
         val request = Request.Builder().url(credentials.baseWsUrl).build()
         listener.steveImageView = steve_imageView
         listener.konfettiView = viewKonfetti
+        // media player was crashing app previously, plays beep when order comes in
         //listener.mediaPlayer = MediaPlayer.create(this, R.raw.beep)
         listener.connectStatus = websocket_status_imageView
         websocketClient = OkHttpClient().newBuilder().retryOnConnectionFailure(true).pingInterval(1, TimeUnit.MINUTES).build()
@@ -665,10 +784,13 @@ class MainActivity : AppCompatActivity() {
 
         websocketClient.dispatcher.executorService.shutdown()
     }
+
     private fun closeWebsocket(reason: String) {
         websocket_status_imageView.setBackgroundResource(R.drawable.cross)
         websocket.close(1001, reason)
     }
+
+    // Read credentials from disk
     private fun gatherCredentials() {
         val sharedPrefs = this.getPreferences(Context.MODE_PRIVATE)
         credentials = DeviceCredentials(sharedPrefs, this)
@@ -680,6 +802,8 @@ class MainActivity : AppCompatActivity() {
             credentials.baseWsUrl = "https://dev.ws.focuslink.focuspos.com/"
         }
     }
+
+    // Display settings
     private fun setDeviceDetails() {
         DeviceDetails.pixelWidth = Resources.getSystem().displayMetrics.widthPixels
         DeviceDetails.pixelHeight = Resources.getSystem().displayMetrics.heightPixels
@@ -700,8 +824,39 @@ class MainActivity : AppCompatActivity() {
 
         DeviceDetails.defaultTextSize = 26 * DeviceDetails.scaleFactor
     }
+
+    private fun clearLicenseInfo() {
+        val editor = credentials.prefs.edit()
+        editor.putString(credentials.PREFS_LICENSE_KEY, null)
+        editor.putString(credentials.PREFS_VENUE_KEY, null)
+        editor.putString(credentials.PREFS_MAC_ADDR, null)
+        editor.putString(credentials.PREFS_IP_ADDR, null)
+        editor.putString(credentials.PREFS_DEVICE_NAME, null)
+        editor.putString(credentials.PREFS_LICENSE_SECRET, null)
+        editor.apply()
+
+        credentials.venueKey = ""
+        credentials.deviceName = ""
+        credentials.licenseKey = ""
+        credentials.licenseSecret = ""
+        credentials.macAddress = credentials.generateFauxMac()
+        credentials.mode = "prod"
+    }
+
+    private fun clearAllOrders() {
+        OrdersModel.orders.clear()
+        OrdersModel.bumpedOrders.clear()
+        orderAdapter.dataSet.clear()
+        OrdersModel.bumpedOrders.add(mutableListOf())
+        val editor = credentials.prefs.edit()
+        editor.putString(credentials.PREFS_ORDERS_KEY, null)
+        editor.apply()
+        orderAdapter.notifyDataSetChanged()
+    }
+
 }
 
+// Adds decoration (border/spacing) to orders
 class OrderDecoration : RecyclerView.ItemDecoration() {
     override fun getItemOffsets(outRect: Rect, view: View,
                                 parent: RecyclerView, state: RecyclerView.State) {

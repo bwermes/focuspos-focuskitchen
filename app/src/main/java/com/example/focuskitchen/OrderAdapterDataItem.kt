@@ -15,7 +15,7 @@ class OrderAdapterDataItem (val isModifier: Boolean,
 
     var isTagged = false
     var isUnbumped = false
-    var timeInSystem = "0:00"
+    var timeInSystem = "<1m"
     var minutesInSystem: Long = 0
     var isAnimating = false
     var orderKey = ""

@@ -13,7 +13,7 @@
       "level": 0,
       "price": 0.0,
       "cookTime": 0,
-      "voided": false
+      "voided": true
     },
     {
       "type": "Parent",
@@ -28,7 +28,7 @@
       "level": 0,
       "price": 0.0,
       "cookTime": 0,
-      "voided": false
+      "voided": true
     }
   ],
   "printerId": 1,

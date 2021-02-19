@@ -7,6 +7,7 @@ import java.net.NetworkInterface
 import java.util.*
 
 class DeviceCredentials (val prefs: SharedPreferences, val context: Context) {
+    // Device specific info
     var macAddress = ""
     var ipAddress = ""
     var venueKey = ""
@@ -19,6 +20,7 @@ class DeviceCredentials (val prefs: SharedPreferences, val context: Context) {
     var printerNum = ""
     var urgentTime = Int.MAX_VALUE
 
+    // Constant keys used to access device saved information
     val PREFS_LICENSE_KEY = "licenseKey"
     val PREFS_MAC_ADDR = "mac"
     val PREFS_IP_ADDR = "ip"
@@ -37,10 +39,10 @@ class DeviceCredentials (val prefs: SharedPreferences, val context: Context) {
         licenseKey = prefs.getString(PREFS_LICENSE_KEY, "")!!
         licenseSecret = prefs.getString(PREFS_LICENSE_SECRET, "")!!
         mode = prefs.getString(PREFS_MODE_KEY, "prod")!!
-        macAddress = generateFauxMac()
+        macAddress = prefs.getString(PREFS_MAC_ADDR, generateFauxMac())!!
     }
 
-    private fun generateFauxMac() : String {
+    fun generateFauxMac() : String {
         // Using the ANDOID_ID allows re-registration of device if it was uninstalled/reinstalled.
         // This prevents releasing the license in the back end and going through registration
         // process again.

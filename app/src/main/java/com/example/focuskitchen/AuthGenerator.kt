@@ -4,6 +4,7 @@ import android.util.Base64
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
+// Generates auth info to access endpoints
 class AuthGenerator {
     companion object {
         fun generateHash(message: String, key: String): String {

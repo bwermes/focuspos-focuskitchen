@@ -1,6 +1,7 @@
 package com.example.focuskitchen
 
 class DeviceDetails {
+    // Display info for showing info properly
     companion object {
         var scaleFactor: Float = 1.0f
         var pixelWidth = 1920
