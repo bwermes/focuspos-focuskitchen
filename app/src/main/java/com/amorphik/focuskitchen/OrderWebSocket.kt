@@ -6,6 +6,11 @@ import android.os.Handler
 import android.os.Looper
 import android.widget.ImageView
 import com.beust.klaxon.Klaxon
+import com.google.gson.Gson
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import nl.dionsegijn.konfetti.KonfettiView
 import nl.dionsegijn.konfetti.models.Size
 import okhttp3.*
@@ -37,6 +42,7 @@ class OrderWebSocket(private val credentials: DeviceCredentials, private val ada
         handler.post {
             connectStatus.setBackgroundResource(R.drawable.cross)
         }
+
         println("closed: $reason")
     }
 
@@ -46,7 +52,23 @@ class OrderWebSocket(private val credentials: DeviceCredentials, private val ada
         handler.post {
             connectStatus.setBackgroundResource(R.drawable.cross)
         }
+        CoroutineScope(Dispatchers.IO).launch {
+            withContext(Dispatchers.Main) {
+                try{
+                    loggly!!.log(
+                        LogglyBody(
+                            "info",
+                            "socketClosing",
+                            null,
+                            null,
+                            reason
+                        )
+                    )
+                }
+                catch(e: Exception){}
 
+            }
+        }
     }
 
     override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
@@ -86,10 +108,32 @@ class OrderWebSocket(private val credentials: DeviceCredentials, private val ada
     private fun handlePrintJob(call: Call, response: Response?, responseBody: String) {
         //PUT print job received
         println("print response: $responseBody")
+
         val printJob = Klaxon().parse<Map<String, Any>>(responseBody)
         val key = printJob!!["key"] as String
         val payload = printJob["payload"] as String
         val order = Klaxon().parse<Order>(payload)
+
+
+        if(credentials.printerNum != "" && (com.amorphik.focuskitchen.printerId == null || com.amorphik.focuskitchen.printerId == "")){
+            com.amorphik.focuskitchen.printerId = credentials.printerNum
+        }
+        CoroutineScope(Dispatchers.IO).launch {
+            withContext(Dispatchers.Main) {
+                try{
+                    loggly!!.log(
+                        LogglyBody(
+                            "info",
+                            "printOrderReceived",
+                            Gson().toJson(order),
+                            order?.check
+                        )
+                    )
+                }
+                catch(e: Exception){}
+
+            }
+        }
 
         val url = "${credentials.baseApiUrl}stores/${credentials.venueKey}/printorders"
         val headerName = "Authorization"
@@ -124,14 +168,53 @@ class OrderWebSocket(private val credentials: DeviceCredentials, private val ada
                                 "status": "error",
                                 "error": "Order retrieved was unable to be parsed"
                             }"""
+
+            CoroutineScope(Dispatchers.IO).launch {
+                withContext(Dispatchers.Main) {
+                    try{
+                        loggly!!.log(
+                            LogglyBody(
+                                "error",
+                                "parseError",
+                                credentials.venueKey,
+                                Gson().toJson(order),
+                                key
+                            )
+                        )
+                    }
+                    catch(e: Exception){}
+
+                }
+            }
             Networking.putData(url, headerName, headerBody, putPayload) { _,_,_ -> }
         }
     }
 
     private fun addOrderToAdapter(order: Order) {
-        OrdersModel.addOrder(order)
-        playSound()
-        saveOrdersToDevice()
+        try{
+            OrdersModel.addOrder(order)
+            playSound()
+            saveOrdersToDevice()
+        }catch(e: Exception){
+            CoroutineScope(Dispatchers.IO).launch {
+                withContext(Dispatchers.Main) {
+                    try{
+                        loggly!!.log(
+                            LogglyBody(
+                                "error",
+                                "addPrintOrderError",
+                                Gson().toJson(order),
+                                order.check,
+                                Gson().toJson(e.message)
+                            )
+                        )
+                    }
+                    catch(e: Exception){}
+
+                }
+            }
+        }
+
     }
     private fun saveOrdersToDevice() {
         Thread {
@@ -142,7 +225,7 @@ class OrderWebSocket(private val credentials: DeviceCredentials, private val ada
         }.run()
     }
     private fun playSound() {
-        //mediaPlayer.start()
+        mediaPlayer.start()
     }
     private fun sendRegistrationMessage(webSocket: WebSocket) {
         val signature = AuthGenerator.generateHash("${credentials.licenseKey}:${credentials.venueKey}:${credentials.macAddress}", credentials.licenseSecret)
@@ -152,6 +235,7 @@ class OrderWebSocket(private val credentials: DeviceCredentials, private val ada
                             "key":"${credentials.licenseKey}",
                             "signature":"$signature"
                         }"""
+
 
         webSocket.send(message)
 

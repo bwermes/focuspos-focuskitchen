@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.res.Resources
 import android.graphics.Canvas
 import android.graphics.Rect
+import android.media.MediaPlayer
 import android.os.*
 import androidx.appcompat.app.AppCompatActivity
 import android.util.DisplayMetrics
@@ -15,16 +16,25 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.beust.klaxon.Klaxon
-import com.example.focuskitchen.OrderAdapter
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexboxLayoutManager
+import com.google.gson.Gson
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.*
 import org.json.JSONArray
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
+
+var loggly: LogglyService? = null
+var venueKey: String? = null
+var deviceLicenseKey: String? = null
+var printerId: String? = null
 
 class MainActivity : AppCompatActivity() {
     lateinit var credentials : DeviceCredentials
@@ -37,6 +47,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Init stuff
+        loggly = LogglyService.create(applicationContext)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
@@ -100,6 +111,30 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
+        if(credentials.venueKey != "" && (venueKey == null || venueKey == "")){
+            venueKey = credentials.venueKey
+            deviceLicenseKey = credentials.licenseKey
+        }
+        if(credentials.printerNum != "" && (printerId == "" || printerId == null)){
+            printerId = credentials.printerNum
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            withContext(Dispatchers.Main) {
+                try{
+                    loggly!!.log(
+                        LogglyBody(
+                            "info",
+                            "appLaunch",
+                            "venueKey = " + credentials.venueKey + " licenseKey = " + credentials.licenseKey + " printerNum = " + credentials.printerNum,
+                            null
+                        )
+                    )
+                }
+                catch(e: Exception){}
+
+            }
+        }
     }
 
     override fun onStart() {
@@ -195,6 +230,28 @@ class MainActivity : AppCompatActivity() {
                         credentials.licenseSecret = jsonResponse["secret"] as String
                         credentials.deviceName = jsonResponse["name"] as String
                         credentials.venueKey = (jsonResponse["venueKey"] as Int).toString()
+
+                        deviceLicenseKey = jsonResponse["key"] as String
+                        venueKey = (jsonResponse["venueKey"] as Int).toString()
+                        printerId = (jsonResponse["printerId"] as Int).toString()
+
+                        CoroutineScope(Dispatchers.IO).launch {
+                            withContext(Dispatchers.Main) {
+                                try{
+                                    loggly!!.log(
+                                        LogglyBody(
+                                            "info",
+                                            "checkDeviceRegistration",
+                                            "venueKey = " + (jsonResponse["venueKey"] as Int).toString() + " licenseKey = " + jsonResponse["key"] as String,
+                                            null,
+                                            null
+                                        )
+                                    )
+                                }
+                                catch(e: Exception){}
+
+                            }
+                        }
 
                         if (venue_info_textView.text == "") {
                             runOnUiThread {
@@ -777,7 +834,7 @@ class MainActivity : AppCompatActivity() {
         listener.steveImageView = steve_imageView
         listener.konfettiView = viewKonfetti
         // media player was crashing app previously, plays beep when order comes in
-        //listener.mediaPlayer = MediaPlayer.create(this, R.raw.beep)
+        listener.mediaPlayer = MediaPlayer.create(this, R.raw.beep)
         listener.connectStatus = websocket_status_imageView
         websocketClient = OkHttpClient().newBuilder().retryOnConnectionFailure(true).pingInterval(1, TimeUnit.MINUTES).build()
         listener.client = websocketClient
@@ -795,12 +852,35 @@ class MainActivity : AppCompatActivity() {
     private fun gatherCredentials() {
         val sharedPrefs = this.getPreferences(Context.MODE_PRIVATE)
         credentials = DeviceCredentials(sharedPrefs, this)
+
+        venueKey = credentials.venueKey
+        deviceLicenseKey = credentials.licenseKey
+        printerId = credentials.printerNum
+
         if (credentials.mode == "prod") {
             credentials.baseApiUrl = "https://focuslink.focuspos.com/v2/"
             credentials.baseWsUrl = "https://ws.focuslink.focuspos.com/"
         } else {
             credentials.baseApiUrl = "https://dev.focuslink.focuspos.com/v2/"
             credentials.baseWsUrl = "https://dev.ws.focuslink.focuspos.com/"
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            withContext(Dispatchers.Main) {
+                try{
+                    loggly!!.log(
+                        LogglyBody(
+                            "info",
+                            "gatherCredentials",
+                            null,
+                            null,
+                            null
+                        )
+                    )
+                }
+                catch(e: Exception){}
+
+            }
         }
     }
 

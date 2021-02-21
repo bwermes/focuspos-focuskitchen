@@ -1,4 +1,4 @@
-package com.example.focuskitchen
+package com.amorphik.focuskitchen
 
 import android.content.res.Resources
 import android.graphics.Color
@@ -17,11 +17,13 @@ import androidx.recyclerview.widget.RecyclerView
 import com.amorphik.focuskitchen.*
 import com.beust.klaxon.Klaxon
 import com.google.android.flexbox.FlexboxLayoutManager
+import com.google.gson.Gson
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.header_cell.view.*
 import kotlinx.android.synthetic.main.order_cell.view.*
 import java.util.*
 import kotlin.concurrent.thread
+import kotlinx.coroutines.*
 
 class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
     val dataSet = OrdersModel.orders
@@ -244,61 +246,102 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
     }
 
     private fun bumpOrder(position: Int) {
-        val toRemove = selectIndices(position)
-        val bumpedItems = mutableListOf<OrderAdapterDataItem>()
-        for (item in toRemove.reversed()) {
-            bumpedItems.add(0, dataSet[item])
-        }
+        var orderKey: String? = null
+        try{
+            val toRemove = selectIndices(position)
+            val bumpedItems = mutableListOf<OrderAdapterDataItem>()
+            for (item in toRemove.reversed()) {
+                bumpedItems.add(0, dataSet[item])
+            }
 
-        if (OrdersModel.bumpedOrders.size > 20) {
-            OrdersModel.bumpedOrders.removeAt(20)
-        }
-        OrdersModel.bumpedOrders.add(0, bumpedItems)
-        if (OrdersModel.bumpedOrders[1].isEmpty()) {
-            recallAdapter?.dataSet = OrdersModel.bumpedOrders[0]
-            recallAdapter?.position = 0
-        } else {
-            recallAdapter!!.position += 1
-        }
+            if (OrdersModel.bumpedOrders.size > 20) {
+                OrdersModel.bumpedOrders.removeAt(20)
+            }
+            OrdersModel.bumpedOrders.add(0, bumpedItems)
+            orderKey = bumpedItems[0].orderKey
 
-        recallAdapter?.notifyDataSetChanged()
-        val payload = """{
+            if (OrdersModel.bumpedOrders[1].isEmpty()) {
+                recallAdapter?.dataSet = OrdersModel.bumpedOrders[0]
+                recallAdapter?.position = 0
+            } else {
+                recallAdapter!!.position += 1
+            }
+
+            recallAdapter?.notifyDataSetChanged()
+            val payload = """{
                                 "message": "printorder-pending",
                                 "key": "${bumpedItems[0].orderKey}"
                              }"""
 
-        Networking.postData(url = "${credentials.baseApiUrl}stores/${credentials.venueKey}/printorders/bump",
-            headerName = "Authorization",
-            headerValue = credentials.generateDeviceLicenseHeader(),
-            payload = payload) { _, _, _ -> }
 
-        for (itemPosition in toRemove.reversed()) {
-            if (itemPosition < recyclerView!!.size) {
-                dataSet[itemPosition].isAnimating = true
-                recyclerView!![itemPosition].animate().alpha(0f).setDuration(150).withEndAction {
-                    if (dataSet[itemPosition].isHeader) {
-                        recyclerView?.getChildAt(itemPosition)?.header_overlay?.x = 0f
+            CoroutineScope(Dispatchers.IO).launch {
+                withContext(Dispatchers.Main) {
+                    try{
+                        loggly!!.log(
+                            LogglyBody(
+                                "info",
+                                "bumpOrder",
+                                Gson().toJson(bumpedItems[0]),
+                                bumpedItems[0].checkNum
+                            )
+                        )
                     }
+                    catch(e: Exception){}
+
+                }
+            }
+            Networking.postData(url = "${credentials.baseApiUrl}stores/${credentials.venueKey}/printorders/bump",
+                headerName = "Authorization",
+                headerValue = credentials.generateDeviceLicenseHeader(),
+                payload = payload) { _, _, _ -> }
+
+            for (itemPosition in toRemove.reversed()) {
+                if (itemPosition < recyclerView!!.size) {
+                    dataSet[itemPosition].isAnimating = true
+                    recyclerView!![itemPosition].animate().alpha(0f).setDuration(150).withEndAction {
+                        if (dataSet[itemPosition].isHeader) {
+                            recyclerView?.getChildAt(itemPosition)?.header_overlay?.x = 0f
+                        }
+
+                        //Update the recyclerView
+                        notifyDataSetChanged()
+                        recyclerView!![itemPosition].alpha = 1.0f
+
+                        dataSet.removeAt(itemPosition)
+
+                        if (itemPosition == toRemove.min()!!) {
+                            Thread {
+                                updateSavedOrders()
+                            }.start()
+
+                            wrapNextColumn(0, itemPosition)
+                        }
+                    }
+                } else {
+                    dataSet.removeAt(itemPosition)
 
                     //Update the recyclerView
                     notifyDataSetChanged()
-                    recyclerView!![itemPosition].alpha = 1.0f
-
-                    dataSet.removeAt(itemPosition)
-
-                    if (itemPosition == toRemove.min()!!) {
-                        Thread {
-                            updateSavedOrders()
-                        }.start()
-
-                        wrapNextColumn(0, itemPosition)
-                    }
                 }
-            } else {
-                dataSet.removeAt(itemPosition)
+            }
+        }
+        catch(e: Exception){
+            CoroutineScope(Dispatchers.IO).launch {
+                withContext(Dispatchers.Main) {
+                    try{
+                        loggly!!.log(
+                            LogglyBody(
+                                "error",
+                                "bumpOrderError",
+                                null,
+                                orderKey,
+                                Gson().toJson(e.message)
+                            )
+                        )
+                    }
+                    catch(e: Exception){}
 
-                //Update the recyclerView
-                notifyDataSetChanged()
+                }
             }
         }
     }
