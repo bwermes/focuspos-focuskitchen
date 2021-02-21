@@ -29,6 +29,18 @@ class OrderWebSocket(private val credentials: DeviceCredentials, private val ada
         println("Websocket opening: $response")
         isConnected = true
 
+        if((venueKey == "" || venueKey == null) && (credentials.venueKey != "")){
+            venueKey = credentials.venueKey
+        }
+
+        if((deviceLicenseKey == "" || deviceLicenseKey == null) && (credentials.licenseKey != "")){
+            deviceLicenseKey = credentials.licenseKey
+        }
+
+        if((printerId == "" || printerId == null) && (credentials.printerNum != "")){
+            printerId = credentials.printerNum
+        }
+
         val handler = Handler(Looper.getMainLooper())
         handler.post {
             connectStatus.setBackgroundResource(R.drawable.blue_check)
