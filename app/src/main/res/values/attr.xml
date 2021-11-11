@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="theme">
+        <attr name="themeName" format="string"/>
+        <attr name="backgroundColor" format="color"/>
+        <attr name="cardBackgroundColor" format="color"/>
+        <attr name="cardTextColor" format="color"/>
+        <attr name="buttonTextColor" format="color"/>
+        <attr name="buttonPrimaryBackgroundColor" format="color"/>
+        <attr name="buttonSecondaryBackgroundColor" format="color"/>
+        <attr name="buttonTertiaryBackgroundColor" format="color"/>
+        <attr name="buttonPrimaryOutlineColor" format="color"/>
+        <attr name="buttonSecondaryOutlineColor" format="color"/>
+        <attr name="buttonTertiaryOutlineColor" format="color"/>
+        <attr name="textPrimaryColor" format="color"/>
+        <attr name="textSecondaryColor" format="color"/>
+        <attr name="textTertiaryColor" format="color"/>
+        <attr name="textOrange" format="color"/>
+        <attr name="textBlueNg" format="color"/>
+        <attr name="textSecNg" format="color"/>
+    </declare-styleable>
+
+    <declare-styleable name="ButtonBarContainerTheme">
+        <attr name="metaButtonBarStyle" format="reference" />
+        <attr name="metaButtonBarButtonStyle" format="reference" />
+    </declare-styleable>
+</resources>

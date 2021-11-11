@@ -2,4 +2,14 @@
     <string name="app_name">Focus Kitchen</string>
     <string name="venue_id">Venue ID</string>
     <string name="license_count">Claim an available license?</string>
+    <string name="close">Close</string>
+    <string name="checks_view_all">All Checks</string>
+    <string name="checks_view_open">Open Checks</string>
+    <string name="checks_view_count">Viewing %1$s of %2$s checks (%3$s open)</string>
+    <string name="check_number">Check %1$s</string>
+    <string name="table_name">Table %1$s</string>
+    <string name="guest_count">Guests %1$s</string>
+    <string name="owner_name">Owner %1$s</string>
+    <string name="value">%1$s</string>
+    <string name="check_seat_count">%1$s of %2$s</string>
 </resources>

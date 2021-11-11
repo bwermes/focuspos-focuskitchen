@@ -16,6 +16,7 @@ class DeviceCredentials (val prefs: SharedPreferences, val context: Context) {
     var licenseSecret = ""
     var mode = ""
     var baseApiUrl = "https://focuslink.focuspos.com/v2/"
+    var baseApiUrlV3 = "https://focuslink.focuspos.com/v3/"
     var baseWsUrl = "https://ws.focuslink.focuspos.com/"
     var printerNum = ""
     var urgentTime = Int.MAX_VALUE
