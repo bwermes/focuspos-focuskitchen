@@ -6,7 +6,22 @@ import okhttp3.RequestBody.Companion.toRequestBody
 
 class       Networking {
 
+
+
     companion object {
+        private val client = OkHttpClient()
+
+        fun getSynchronous(url: String, headerName: String, headerValue: String): Response{
+            val request = Request.Builder()
+                .url(url)
+                .header(headerName, headerValue)
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                return response
+            }
+        }
+
         fun fetchJson(url: String, headerName: String, headerValue: String, performOnCallback: (Call, Response?, String) -> Unit) {
             val request = Request.Builder()
                 .url(url)
@@ -39,7 +54,6 @@ class       Networking {
                 }
             })
         }
-
 
         fun postData(url: String, headerName: String, headerValue: String, payload: String, performOnCallback: (Call, Response?, String) -> Unit) {
             val requestBody = payload.toRequestBody()
@@ -103,5 +117,7 @@ class       Networking {
                 }
             })
         }
+
+
     }
 }

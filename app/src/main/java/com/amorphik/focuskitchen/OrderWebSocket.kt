@@ -130,6 +130,7 @@ class OrderWebSocket(private val credentials: DeviceCredentials, private val ada
         if(credentials.printerNum != "" && (com.amorphik.focuskitchen.printerId == null || com.amorphik.focuskitchen.printerId == "")){
             com.amorphik.focuskitchen.printerId = credentials.printerNum
         }
+
         CoroutineScope(Dispatchers.IO).launch {
             withContext(Dispatchers.Main) {
                 try{

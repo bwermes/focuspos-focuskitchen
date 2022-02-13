@@ -1,5 +1,6 @@
 package com.amorphik.focuskitchen
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.Resources
 import android.graphics.Canvas
@@ -8,6 +9,7 @@ import android.media.MediaPlayer
 import android.os.*
 import androidx.appcompat.app.AppCompatActivity
 import android.util.DisplayMetrics
+import android.util.Log
 import android.view.View
 import android.view.ViewTreeObserver
 import android.view.animation.AccelerateInterpolator
@@ -45,6 +47,17 @@ class MainActivity : AppCompatActivity() {
     lateinit var websocketListener: OrderWebSocket
     var menuIsAnimating = false
 
+    lateinit var mainHandler: Handler
+
+    private val updateDeviceStatus = object: Runnable{
+        override fun run(){
+            Log.d("heartBeat","updateDeviceStatus")
+            deviceHeartbeatAndConnectivityCheck()
+
+            mainHandler.postDelayed(this, 60000)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Init stuff
         loggly = LogglyService.create(applicationContext)
@@ -68,6 +81,9 @@ class MainActivity : AppCompatActivity() {
         checkDeviceRegistration()
         runWebsocket()
         layoutMenu()
+        mainHandler = Handler(Looper.getMainLooper())
+        mainHandler.post(updateDeviceStatus)
+
 
         // Set text size
         previous_orders_textView.textSize = DeviceDetails.defaultTextSize
@@ -157,7 +173,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
-
+        mainHandler.removeCallbacks(updateDeviceStatus)
         // Close websock if app moves into closed state
         closeWebsocket("On stop")
     }
@@ -198,6 +214,27 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun deviceHeartbeatAndConnectivityCheck(){
+        Log.d("heartbeat","deviceHeartbeatAndConnectivityCheck")
+        try{
+            val statusConnected = Utility.appConnectivityCheck(this@MainActivity, credentials)
+            if(!statusConnected){
+                val viewHeaderResource = this.findViewById<View>(R.id.view)
+                val res = resources
+                viewHeaderResource.setBackgroundColor(getResources().getColor(R.color.yellow_danger))
+                Log.d("heartbeat","status post failed")
+            } else{
+                val viewHeaderResource = this.findViewById<View>(R.id.view)
+                val res = resources
+                viewHeaderResource.setBackgroundColor(getResources().getColor(R.color.colorAccent))
+                Log.d("heartbeat","status post successful")
+            }
+
+        }catch(e: java.lang.Exception){
+            Log.d("heartbeat","status post errored")
+            Log.e("heartbeat", "error: ${e.message}")
+        }
+    }
 
     private fun checkDeviceRegistration() {
         val deviceWasRegistered = verifyCredentials(credentials)
