@@ -269,10 +269,12 @@ class VenueDialog: AppCompatDialogFragment() {
 
                 if (credentials.mode == "prod") {
                     credentials.baseApiUrl = "https://focuslink.focuspos.com/v2/"
+                    credentials.baseApiUrlV3 = "http://focuslink.focuspos.com/v3/"
                     credentials.baseWsUrl = "https://ws.focuslink.focuspos.com/"
                     editor.putString(credentials.PREFS_MODE_KEY, "prod")
                 } else {
                     credentials.baseApiUrl = "https://dev.focuslink.focuspos.com/v2/"
+                    credentials.baseApiUrlV3 = "http://dev.focuslink.focuspos.com/v3/"
                     credentials.baseWsUrl = "https://dev.ws.focuslink.focuspos.com/"
                     editor.putString(credentials.PREFS_MODE_KEY, "dev")
                 }
