@@ -12,4 +12,9 @@
     <string name="owner_name">Owner %1$s</string>
     <string name="value">%1$s</string>
     <string name="check_seat_count">%1$s of %2$s</string>
+    <string name="api_license_id">2a4f52e7-ac71-4c0e-b0bc-d64d76ae2939</string>
+    <string name="api_license_secret">b1510f83-f22b-4b71-a414-c96a559ee4e0</string>
+    <string name="api_url_dev">https://dev.focuslink.focuspos.com/</string>
+    <string name="api_url_prod">https://focuslink.focuspos.com/</string>
+    <string name="main_connection_status">Connection down: %1$s</string>
 </resources>

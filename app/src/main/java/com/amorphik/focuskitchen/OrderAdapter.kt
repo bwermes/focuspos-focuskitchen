@@ -1,5 +1,6 @@
 package com.amorphik.focuskitchen
 
+import android.annotation.SuppressLint
 import android.content.res.Resources
 import android.graphics.Color
 import android.graphics.Paint
@@ -103,7 +104,7 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
         return viewHolder
     }
 
-    override fun onBindViewHolder(holder: OrderViewHolder, position: Int) {
+    override fun onBindViewHolder(holder: OrderViewHolder, @SuppressLint("RecyclerView") position: Int) {
         constructOrderItem(holder, position)
 
         // Grab the position of the last item on the screen
@@ -207,19 +208,19 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
                 recyclerView[i].header_cell_top_border.setBackgroundColor(
                     ContextCompat.getColor(
                         recyclerView.context,
-                        R.color.colorAccent
+                        R.color.colorFocusLinkSecondaryGray
                     )
                 )
                 recyclerView[i].header_cell_left_border.setBackgroundColor(
                     ContextCompat.getColor(
                         recyclerView.context,
-                        R.color.colorAccent
+                        R.color.colorFocusLinkSecondaryGray
                     )
                 )
                 recyclerView[i].header_cell_right_border.setBackgroundColor(
                     ContextCompat.getColor(
                         recyclerView.context,
-                        R.color.colorAccent
+                        R.color.colorFocusLinkSecondaryGray
                     )
                 )
             } else {
@@ -230,15 +231,15 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
                     Color.TRANSPARENT
                 )
                 recyclerView[i].order_cell_left_border.setBackgroundColor(
-                    ContextCompat.getColor(recyclerView.context, R.color.colorAccent)
+                    ContextCompat.getColor(recyclerView.context, R.color.colorFocusLinkSecondaryGray)
                 )
                 recyclerView[i].order_cell_right_border.setBackgroundColor(
-                    ContextCompat.getColor(recyclerView.context, R.color.colorAccent)
+                    ContextCompat.getColor(recyclerView.context, R.color.colorFocusLinkSecondaryGray)
                 )
 
                 if (i == dataSet.size - 1 || dataSet[i + 1].isHeader) {
                     recyclerView[i].order_cell_bottom_border.setBackgroundColor(
-                        ContextCompat.getColor(recyclerView.context, R.color.colorAccent)
+                        ContextCompat.getColor(recyclerView.context, R.color.colorFocusLinkSecondaryGray)
                     )
                 }
             }
@@ -417,7 +418,7 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
                     holder.view.order_cell_bottom_border.setBackgroundColor(
                         ContextCompat.getColor(
                             holder.view.context,
-                            R.color.colorAccent
+                            R.color.colorFocusLinkSecondaryGray
                         )
                     )
                 } else {
@@ -429,11 +430,21 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
                 holder.view.header_layout.setBackgroundColor(Color.MAGENTA)
             } else {
                 if (dataSet[position].minutesInSystem < credentials.urgentTime) {
-                    holder.view.header_overlay.setBackgroundColor(Color.rgb(0, 153, 204))
-                    holder.view.header_layout.setBackgroundColor(Color.rgb(0, 153, 204))
+//                    holder.view.header_overlay.setBackgroundColor(Color.rgb(0, 153, 204))
+//                    holder.view.header_layout.setBackgroundColor(Color.rgb(0, 153, 204))
+                    holder.view.header_overlay.setBackgroundColor(ContextCompat.getColor(
+                        holder.view.context,
+                        R.color.colorFocusLinkSecondaryGray
+                    ))
+                    holder.view.header_layout.setBackgroundColor(ContextCompat.getColor(
+                        holder.view.context,
+                        R.color.colorFocusLinkSecondaryGray
+                    ))
+
                 } else {
                     holder.view.header_overlay.setBackgroundColor(Color.RED)
                     holder.view.header_layout.setBackgroundColor(Color.RED)
+
                 }
             }
             holder.view.header_cell_server_text.text = dataSet[position].server

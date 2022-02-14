@@ -4,13 +4,22 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
+import android.util.Log
+import java.lang.Exception
 
 object Utility {
-    public fun appConnectivityCheck(context: Context, credentials: DeviceCredentials): Boolean{
+    public fun appConnectivityCheck(context: Context, credentials: DeviceCredentials, connectionDownMinutes: Int, connectionDrops: Int): Boolean{
         if(osNetworkCheck(context)){
-            if(focusLinkNetworkCheck(credentials)){
+            try{
+                focusLinkNetworkCheck(credentials, connectionDownMinutes, connectionDrops)
+                            Log.d("heartbeat","Successful")
                 return true
+            }catch(e: Exception){
+                            Log.d("heartbeat","Failed: ${e.message}")
+                return false
             }
+
+
         }
         return false
     }
@@ -32,14 +41,19 @@ object Utility {
         }
     }
 
-    public fun focusLinkNetworkCheck(credentials: DeviceCredentials): Boolean{
-        val url = "${credentials.baseApiUrl}stores/${credentials.venueKey}/kitchen/device/${credentials.licenseKey}/checkin"
-        val headerName = "Authorization"
-        val headerBody = credentials.generateDeviceLicenseHeader()
-        val response = Networking.getSynchronous(url = url, headerName = headerName, headerValue = headerBody)
-        if(response.isSuccessful){
-            return true
-        }
-        return false
+    public fun focusLinkNetworkCheck(credentials: DeviceCredentials, connectionDownMinutes: Int, connectionDrops: Int){
+        api!!.postStatus(prefs.venueKey, prefs.license!!.key!!,
+            LicenseStatus(
+                key = prefs.license!!.key!!,
+                connectionDownMinutes = connectionDownMinutes,
+                connectionDrops = connectionDrops))
+//        try{
+//
+//            Log.d("heartbeat","Successful")
+//            return true
+//        }catch(e: Exception){
+//            Log.d("heartbeat","Failed: ${e.message}")
+//            return false
+//        }
     }
 }

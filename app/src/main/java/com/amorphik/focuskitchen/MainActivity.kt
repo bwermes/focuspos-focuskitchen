@@ -13,6 +13,7 @@ import android.util.Log
 import android.view.View
 import android.view.ViewTreeObserver
 import android.view.animation.AccelerateInterpolator
+import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -33,7 +34,7 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
-var loggly: LogglyService? = null
+
 var venueKey: String? = null
 var deviceLicenseKey: String? = null
 var printerId: String? = null
@@ -45,6 +46,8 @@ class MainActivity : AppCompatActivity() {
     lateinit var websocketClient: OkHttpClient
     lateinit var websocket: WebSocket
     lateinit var websocketListener: OrderWebSocket
+    var connectionDrops: Int = 0
+    var connectionDownMinutes: Int = 0
     var menuIsAnimating = false
 
     lateinit var mainHandler: Handler
@@ -74,6 +77,8 @@ class MainActivity : AppCompatActivity() {
         // Init device info
         setDeviceDetails()
         gatherCredentials()
+        // Init prefs
+        prefs.authToken = "noToken"
 
         setupAdapters()
         //deviceNameAddsOrder()           Line can be uncommented to use JSON file to add orders (never deploy)
@@ -215,19 +220,32 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun deviceHeartbeatAndConnectivityCheck(){
+
         Log.d("heartbeat","deviceHeartbeatAndConnectivityCheck")
         try{
-            val statusConnected = Utility.appConnectivityCheck(this@MainActivity, credentials)
+            val statusConnected = Utility.appConnectivityCheck(this@MainActivity, credentials, connectionDownMinutes, connectionDrops)
+            val main_connectionDownDuration = this.findViewById<TextView>(R.id.main_connectionDownDuration)
             if(!statusConnected){
                 val viewHeaderResource = this.findViewById<View>(R.id.view)
                 val res = resources
                 viewHeaderResource.setBackgroundColor(getResources().getColor(R.color.yellow_danger))
                 Log.d("heartbeat","status post failed")
+                connectionDownMinutes += 1
+                connectionDrops += 1
+                if(connectionDownMinutes > 1){
+                    main_connectionDownDuration.visibility = View.VISIBLE
+                    main_connectionDownDuration.text = String.format(res.getString(R.string.main_connection_status),"$connectionDownMinutes minutes")
+                }
+
+
             } else{
+                main_connectionDownDuration.visibility = View.INVISIBLE
                 val viewHeaderResource = this.findViewById<View>(R.id.view)
                 val res = resources
-                viewHeaderResource.setBackgroundColor(getResources().getColor(R.color.colorAccent))
+                viewHeaderResource.setBackgroundColor(getResources().getColor(R.color.colorFocusBlue))
                 Log.d("heartbeat","status post successful")
+                connectionDownMinutes = 0
+
             }
 
         }catch(e: java.lang.Exception){
@@ -757,6 +775,18 @@ class MainActivity : AppCompatActivity() {
         } else {
             val signature = AuthGenerator.generateHash("${credentials.licenseKey}:${credentials.venueKey}:${credentials.macAddress}", credentials.licenseSecret)
 
+            prefs.license = License(
+                key = credentials.licenseKey,
+                secret = credentials.licenseSecret,
+                venueKey = credentials.venueKey.toInt()
+            )
+            prefs.venueKey = credentials.venueKey.toInt()
+            prefs.licenseVerified = true
+            prefs.authToken = signature
+
+
+            Log.d("license","authToken = ${prefs.authToken}")
+
             val payload = """{
                                 "key": "${credentials.licenseKey}",
                                 "signature": "$signature"
@@ -773,8 +803,11 @@ class MainActivity : AppCompatActivity() {
 
     // Verify license is valid
     private fun handleVerification(call: Call, response: Response?, responseBody: String) {
-        if (response != null && response.code >= 400) {
-            openDialog("ERROR", response.code)
+
+        if (response == null || response != null && response.code >= 400) {
+            if (response != null) {
+                openDialog("ERROR", response.code)
+            }
             return
         }
 
@@ -831,6 +864,7 @@ class MainActivity : AppCompatActivity() {
                 _, _, devicePrefsResponse ->
 
             val prefsResponse = Klaxon().parse<Map<String, Any>>(devicePrefsResponse)
+            prefs.venuePreferences
             println("device prefs response: $prefsResponse")
             if (prefsResponse != null && prefsResponse["urgentTime"] != null) {
                 credentials.urgentTime = prefsResponse["urgentTime"] as Int
@@ -858,7 +892,7 @@ class MainActivity : AppCompatActivity() {
         val url = "${credentials.baseApiUrl}licenses/ip"
         val header = "Authorization"
         val headerBody = credentials.generateDeviceLicenseHeader()
-        val payload = """{"key": "${credentials.licenseKey}", "ip": "$currentIp"}"""
+        val payload = """{"key": "${credentials.licenseKey}", "ip": "$currentIp"}, "softwareVersion": "${BuildConfig.VERSION_NAME}"}"""
         Networking.putData(url,header,headerBody,payload) {
             call, response, responseBody ->
             println("update IP Addr response: $responseBody")

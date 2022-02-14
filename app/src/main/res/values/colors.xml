@@ -1,8 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#008577</color>
-    <color name="colorPrimaryDark">#00574B</color>
-    <color name="colorAccent">#343434</color>
+<!--    <color name="colorPrimary">#008577</color>-->
+<!--    <color name="colorPrimaryDark">#00574B</color>-->
+<!--    <color name="colorAccent">#343434</color>-->
     <color name="colorBlack">#000000</color>
+    <color name="white">#FFFFFF</color>
     <color name="yellow_danger">#E0A701</color>
+    <color name="colorAccent">#ff9e18</color>
+    <color name="colorFocusBlack">#000000</color>
+    <color name="colorFocusBlue">#168fed</color>
+    <color name="colorFocusDarkBlue">#1355bf</color>
+    <color name="colorFocusDarkGrey">#222222</color>
+    <color name="colorFocusGrey">#646464</color>
+    <color name="colorFocusLightBlue">#1aa8c7</color>
+    <color name="colorFocusOrange">#ff9e18</color>
+    <color name="colorFocusRed">#ff0000</color>
+    <color name="colorFocusWhite">#ffffff</color>
+    <color name="colorFocusLightBackground">#F8F9FA</color>
+    <color name="colorFocusLinkBlue">#168fed</color>
+    <color name="colorFocusLinkLogoBlue">#17699a</color>
+    <color name="colorFocusLinkLogoOrange">#ff8f2d</color>
+    <color name="colorFocusLinkGray">#f1f5fa</color>
+    <color name="colorFocusLinkDarkGray">#616a71</color>
+    <color name="colorFocusLinkBlack">#40474d</color>
+    <color name="colorFocusLinkWhite">#ffffff</color>
+    <color name="colorFocusLinkSecondaryGray">#56707D</color>
+    <color name="colorFocusLinkSuccess">#5E8F32</color>
+    <color name="colorFocusLinkRed">#cf1d2e</color>
+    <color name="colorPrimary">#1aa8c7</color>
+    <color name="colorPrimaryDark">#1355bf</color>
+    <color name="black_overlay">#66000000</color>
 </resources>

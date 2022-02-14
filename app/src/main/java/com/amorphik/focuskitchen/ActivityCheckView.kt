@@ -18,7 +18,7 @@ class ActivityCheckView: AppCompatActivity() {
     fun loadChecks(){
         CoroutineScope(Dispatchers.IO).launch {
             withContext(Dispatchers.Main) {
-                val checks = Networking.fetchJson("https://dev.focuslink.focuspos.com/v3")
+
             }
         }
     }

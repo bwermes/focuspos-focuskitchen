@@ -12,7 +12,7 @@
         android:id="@+id/view"
         android:layout_width="wrap_content"
         android:layout_height="50dp"
-        android:background="@color/colorAccent"
+        android:background="@color/colorFocusBlue"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
@@ -53,6 +53,20 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/view" />
+
+    <TextView
+        android:id="@+id/main_connectionDownDuration"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toEndOf="@id/venue_info_textView"
+        app:layout_constraintEnd_toStartOf="@id/menu_button"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="@id/view"
+        android:visibility="invisible"
+        android:text="@string/main_connection_status"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"/>
+
 
     <ImageView
         android:id="@+id/websocket_status_imageView"
