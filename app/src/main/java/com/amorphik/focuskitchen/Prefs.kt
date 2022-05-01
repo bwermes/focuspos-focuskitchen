@@ -98,4 +98,15 @@ class Prefs(context: Context) {
             }
         }
         set(value) = prefs.edit().putString("venuePreferences", Gson().toJson(value)).apply()
+
+    var licenseFeatures: LicenseFeatures?
+        get(){
+            val json = prefs.getString("licenseFeatures","")
+            return if(json!!.isNotEmpty()){
+                Gson().fromJson(json, LicenseFeatures::class.java)
+            } else{
+                null
+            }
+        }
+    set(value) = prefs.edit().putString("licenseFeatures", Gson().toJson(value)).apply()
 }

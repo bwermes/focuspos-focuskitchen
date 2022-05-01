@@ -1,5 +1,6 @@
 package com.amorphik.focuskitchen
 
+import android.util.Log
 import java.util.*
 
 class OrdersModel {
@@ -15,13 +16,32 @@ class OrdersModel {
             val time = Date().time
             val checkNum =  order.check
             val orderKey = order.key
+            val printOrderSessionKey = order.printOrderSessionKey
+            val orderReadySms = order.orderReadySms
+            val orderReadySmsCount = order.smsCount
             var delayTime = 0
             if (order.delayTime > 0) {
                 delayTime = order.delayTime + 1
             }
 
-            val headerItem = OrderAdapterDataItem(isModifier = false, isHeader = true, isLastItemInOrder = false, orderType = orderType,
-                server = server, time = time, table = table, itemName = "", itemLevel = 0, checkNum = checkNum, voided = false, quantity = 0)
+            Logger.d("smsOrder","OrderReadySms value =${orderReadySms}")
+
+            val headerItem = OrderAdapterDataItem(
+                isModifier = false,
+                isHeader = true,
+                isLastItemInOrder = false,
+                orderType = orderType,
+                server = server,
+                time = time,
+                table = table,
+                itemName = "",
+                itemLevel = 0,
+                checkNum = checkNum,
+                voided = false,
+                quantity = 0,
+                printOrderSessionKey = printOrderSessionKey,
+                orderReadySms = orderReadySms)
+
             headerItem.orderKey = orderKey
             headerItem.delayTime = delayTime
 
@@ -45,8 +65,21 @@ class OrdersModel {
                 if (item.level == 0) {
                     remoteName = remoteName.subSequence(2, remoteName.length).toString()
                 }
-                val orderItem = OrderAdapterDataItem(isModifier = itemIsModifier, isHeader = false, isLastItemInOrder = lastItem,orderType = orderType,
-                    server = server, time = time, table = table, itemName = remoteName, itemLevel = item.level, checkNum = checkNum, voided = voided, quantity = quantity)
+                val orderItem = OrderAdapterDataItem(
+                    isModifier = itemIsModifier,
+                    isHeader = false,
+                    isLastItemInOrder = lastItem,
+                    orderType = orderType,
+                    server = server,
+                    time = time,
+                    table = table,
+                    itemName = remoteName,
+                    itemLevel = item.level,
+                    checkNum = checkNum,
+                    voided = voided,
+                    quantity = quantity,
+                    printOrderSessionKey = printOrderSessionKey,
+                    orderReadySms = null)
                 orderItem.delayTime = delayTime
                 if (delayTime == 0) {
                     orders.add(orderItem)
@@ -60,6 +93,28 @@ class OrdersModel {
                 println("Delayed order ${heldOrder[0].checkNum} received - Holding for ${heldOrder[0].delayTime} minutes.")
                 println("Currently held orders: ${heldOrders.size}")
             }
+        }
+
+        fun findOrdersToBump(printOrderKey: String): OrderAdapterDataItem? {
+            return orders.find { i -> i.orderKey == printOrderKey }
+        }
+
+        fun markOrderComplete(printOrderKey: String): Boolean{
+            val order = orders.find { i -> i.orderKey == printOrderKey }
+            if (order != null) {
+                order.isComplete = true
+                return true
+            };
+            return false
+        }
+
+        fun markOrderPriority(printOrderKey: String): Boolean{
+            val order = orders.find { i -> i.orderKey == printOrderKey }
+            if (order != null) {
+                order.isPriority = true
+                return true
+            };
+            return false
         }
     }
 }

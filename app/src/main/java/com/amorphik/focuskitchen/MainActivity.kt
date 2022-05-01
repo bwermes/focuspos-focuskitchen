@@ -1,9 +1,10 @@
 package com.amorphik.focuskitchen
 
 import android.annotation.SuppressLint
-import android.content.Context
+import android.content.*
 import android.content.res.Resources
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Rect
 import android.media.MediaPlayer
 import android.os.*
@@ -12,12 +13,15 @@ import android.util.DisplayMetrics
 import android.util.Log
 import android.view.View
 import android.view.ViewTreeObserver
+import android.view.WindowManager
 import android.view.animation.AccelerateInterpolator
-import android.widget.TextView
+import android.widget.*
 import androidx.appcompat.app.AlertDialog
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.amorphik.focuskitchen.itemControl.ActivityItemView
 import com.beust.klaxon.Klaxon
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexboxLayoutManager
@@ -29,6 +33,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.*
 import org.json.JSONArray
+import java.io.Serializable
+import java.lang.ref.WeakReference
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -46,18 +52,21 @@ class MainActivity : AppCompatActivity() {
     lateinit var websocketClient: OkHttpClient
     lateinit var websocket: WebSocket
     lateinit var websocketListener: OrderWebSocket
+    lateinit var managerModeButton: ImageView
     var connectionDrops: Int = 0
     var connectionDownMinutes: Int = 0
     var menuIsAnimating = false
+    private lateinit var res: Resources
+
 
     lateinit var mainHandler: Handler
 
     private val updateDeviceStatus = object: Runnable{
         override fun run(){
-            Log.d("heartBeat","updateDeviceStatus")
+            Log.d("heartbeat","updateDeviceStatus")
             deviceHeartbeatAndConnectivityCheck()
 
-            mainHandler.postDelayed(this, 60000)
+            mainHandler.postDelayed(this, 120000)
         }
     }
 
@@ -66,6 +75,8 @@ class MainActivity : AppCompatActivity() {
         loggly = LogglyService.create(applicationContext)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        FocusKitchenApplication.appContext = applicationContext
+        res = resources
 
         val policy = StrictMode.ThreadPolicy.Builder().permitAll().build()
         StrictMode.setThreadPolicy(policy)
@@ -73,6 +84,9 @@ class MainActivity : AppCompatActivity() {
         // Build main layout and bumped orders
         orderRecyclerView_main.layoutManager = FlexboxLayoutManager(this, FlexDirection.COLUMN)
         recall_recycler_view.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
+
+        managerModeButton = this.findViewById<ImageView>(R.id.manager_mode_access_button)
+        managerModeButton.visibility = View.GONE
 
         // Init device info
         setDeviceDetails()
@@ -87,6 +101,7 @@ class MainActivity : AppCompatActivity() {
         runWebsocket()
         layoutMenu()
         mainHandler = Handler(Looper.getMainLooper())
+
         mainHandler.post(updateDeviceStatus)
 
 
@@ -111,18 +126,22 @@ class MainActivity : AppCompatActivity() {
         var counter = 0
         view.viewTreeObserver.addOnGlobalLayoutListener(object: ViewTreeObserver.OnGlobalLayoutListener {
             override fun onGlobalLayout() {
-
                 if (counter == 2) {
                     // Used to purge specific key values a single time from memory if needed
-                    if (!credentials.prefs.getBoolean("hasPurged1.0", false)) {
-                        val editor = credentials.prefs.edit()
+                    if (!credentials.sharedPreferences.getBoolean("hasPurged1.0", false)) {
+                        val editor = credentials.sharedPreferences.edit()
                         editor.putBoolean("hasPurged1.0", true)
                         editor.putString(credentials.PREFS_ORDERS_KEY, null)
                         editor.apply()
                     }
 
                     // Add the existing orders
-                    addExistingOrders()
+                    try{
+                        addExistingOrders()
+                    }catch(e: Exception){
+                        clearAllOrders()
+                    }
+
                 }
                 counter++
 
@@ -181,6 +200,62 @@ class MainActivity : AppCompatActivity() {
         mainHandler.removeCallbacks(updateDeviceStatus)
         // Close websock if app moves into closed state
         closeWebsocket("On stop")
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        registerReceiver(
+            broadcastReceiver, IntentFilter(
+                OrderWebSocket.BROADCAST_ACTION
+            )
+        )
+    }
+
+    private val broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val message = intent.getStringExtra("message")
+            Log.d("broadcast","on broadcast receive")
+            Logger.d("smsOrder","in broadcast")
+            val source = intent.getStringExtra("source");
+            Logger.d("smsOrder","broadcast source ${source}")
+            when(source){
+                "bumpOrder" -> removeOrderFromAdapter(intent.getStringExtra("printOrderKey")!!)
+                "completeOrder" -> completeOrderOnAdapter(intent.getStringExtra("printOrderKey")!!)
+                "priorityOrder" -> priorityOrder(intent.getStringExtra("printOrderKey")!!)
+                "smsPrintOrder" -> smsPrintOrderPrompt(intent.getStringExtra("printOrderKey")!!, intent.getStringExtra("orderReadySms")!!)
+            }
+
+        }
+    }
+
+    private fun completeOrderOnAdapter(printOrderKey: String){
+        val orderComplete: Boolean = OrdersModel.markOrderComplete(printOrderKey)
+        if(orderComplete){
+            Log.d("printorder-complete","order found. marked completed order")
+            orderAdapter.notifyDataSetChanged()
+        } else{
+            Log.d("printorder-complete","order not found")
+        }
+
+    }
+
+    private fun priorityOrder(printOrderKey: String){
+        val orderPriority: Boolean = OrdersModel.markOrderPriority(printOrderKey)
+        if(orderPriority){
+            Log.d("printorder-priority","order found. marked priority order")
+            orderAdapter.notifyDataSetChanged()
+        } else{
+            Log.d("printorder-priority","order not found")
+        }
+    }
+
+    private fun removeOrderFromAdapter(printOrderKey: String){
+        val order = OrdersModel.findOrdersToBump(printOrderKey)
+        if(order != null){
+            Log.d("printOrder-main","bumping order ${order.orderKey} position ${order.lastPosition}")
+            orderAdapter.bumpOrder(order.lastPosition)
+        }
     }
 
     // Turns the device name label into a button to add orders
@@ -271,7 +346,7 @@ class MainActivity : AppCompatActivity() {
             // No device details are saved
             // Check to see if device had been registered before
             // If it has, use that license. Otherwise, prompt registration
-            val url = "https://dev.focuslink.focuspos.com/v2/licenses/claimed?deviceId=${credentials.macAddress}" // URL to find match device
+            val url = "https://focuslink.focuspos.com/v2/licenses/claimed?deviceId=${credentials.macAddress}" // URL to find match device
             val header = "Authorization"
             val headerBody = credentials.generateIntegratorHeader() // Integrator Header Value
             Networking.fetchJson(url, header, headerBody) {
@@ -315,7 +390,7 @@ class MainActivity : AppCompatActivity() {
                         }
 
                         // Save necessary info and proceed as if device had this info already saved
-                        val editor = credentials.prefs.edit()
+                        val editor = credentials.sharedPreferences.edit()
                         editor.putString(credentials.PREFS_LICENSE_KEY, credentials.licenseKey)
                         editor.putString(credentials.PREFS_VENUE_KEY, credentials.venueKey)
                         editor.putString(credentials.PREFS_MAC_ADDR, credentials.macAddress)
@@ -337,6 +412,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+
+
     // Begin websocket
     private fun runWebsocket() {
         websocket_status_imageView.setOnClickListener {
@@ -344,7 +421,7 @@ class MainActivity : AppCompatActivity() {
             startWebSocket(credentials, websocketListener)
         }
 
-        websocketListener = OrderWebSocket(credentials, orderAdapter)
+        websocketListener = OrderWebSocket(credentials, orderAdapter, this)
         val websocketReconnection = object: Runnable {
             override fun run() {
                 Handler().postDelayed(this, 5000)
@@ -423,7 +500,7 @@ class MainActivity : AppCompatActivity() {
 
                     // Determine the time the order came in
                     val timeOfOrder = orderHeader.time
-                    
+
                     // Time difference
                     val diff = currentTime.time - timeOfOrder
                     val seconds = diff / 1000
@@ -436,7 +513,7 @@ class MainActivity : AppCompatActivity() {
                         }
                         orderAdapter.notifyDataSetChanged()
                         Thread {
-                            val editor = credentials.prefs.edit()
+                            val editor = credentials.sharedPreferences.edit()
                             val ordersAsJson = Klaxon().toJsonString(OrdersModel.orders)
                             editor.putString(credentials.PREFS_ORDERS_KEY, ordersAsJson)
                             editor.apply()
@@ -452,7 +529,7 @@ class MainActivity : AppCompatActivity() {
 
                 // Spin up new thread to save the delayed orders
                 thread {
-                    val editor = credentials.prefs.edit()
+                    val editor = credentials.sharedPreferences.edit()
                     val delayedOrdersJSON = Klaxon().toJsonString(OrdersModel.heldOrders)
                     editor.putString(credentials.PREFS_DELAYED_KEY, delayedOrdersJSON)
                     editor.apply()
@@ -554,6 +631,12 @@ class MainActivity : AppCompatActivity() {
                 }.start()
             }
         }
+
+        managerModeButton.setOnClickListener{
+            Log.d("itemControl","launch intent")
+            val intent = Intent(this@MainActivity, ActivityItemView::class.java)
+            startActivity(intent)
+        }
     }
 
     // Adapters hold the displayed orders
@@ -566,6 +649,8 @@ class MainActivity : AppCompatActivity() {
     private fun createOrderAdapter() : OrderAdapter {
         val adapter = OrderAdapter()
         adapter.setHasStableIds(true)
+        adapter.mainActivity = this
+        adapter.context = this
         orderRecyclerView_main.adapter = adapter
         orderRecyclerView_main.setHasFixedSize(true)
         orderRecyclerView_main.addItemDecoration(OrderDecoration())
@@ -609,16 +694,22 @@ class MainActivity : AppCompatActivity() {
 
     // Import existing orders saved in the system. Will happen at app relaunch
     private fun addExistingOrders() {
-        if (credentials.prefs.getString(credentials.PREFS_ORDERS_KEY, null) != null) {
-            val savedOrders = Klaxon().parseArray<OrderAdapterDataItem>(credentials.prefs.getString(credentials.PREFS_ORDERS_KEY, "[]")!!)!!
+        if (credentials.sharedPreferences.getString(credentials.PREFS_ORDERS_KEY, null) != null) {
+            var savedOrders: List<OrderAdapterDataItem> = emptyList()
+            try{
+                savedOrders = Klaxon().parseArray<OrderAdapterDataItem>(credentials.sharedPreferences.getString(credentials.PREFS_ORDERS_KEY, "[]")!!)!!
+            }catch(ex: java.lang.Exception){
+                Logger.d("orderSave","EX: ${ex.message}")
+            }
+
+
             for (order in savedOrders) {
                 OrdersModel.orders.add(order)
                 orderAdapter.notifyDataSetChanged()
             }
         }
-
-        if (credentials.prefs.getString(credentials.PREFS_DELAYED_KEY, null) != null) {
-            val jsonString = credentials.prefs.getString(credentials.PREFS_DELAYED_KEY, "[]")!!
+        if (credentials.sharedPreferences.getString(credentials.PREFS_DELAYED_KEY, null) != null) {
+            val jsonString = credentials.sharedPreferences.getString(credentials.PREFS_DELAYED_KEY, "[]")!!
             val jsonArray = JSONArray(jsonString)
             for (i in 0 until(jsonArray.length())) {
                 val savedOrder = Klaxon().parseArray<OrderAdapterDataItem>(jsonArray[i].toString())!!
@@ -731,10 +822,12 @@ class MainActivity : AppCompatActivity() {
 //    }
 
     private fun saveOrdersToDevice() {
-        val editor = credentials.prefs.edit()
+        val editor = credentials.sharedPreferences.edit()
         val ordersAsJson = Klaxon().toJsonString(OrdersModel.orders)
+
         editor.putString(credentials.PREFS_ORDERS_KEY, ordersAsJson)
         editor.apply()
+
     }
 
     // Registration dialog functions
@@ -789,7 +882,9 @@ class MainActivity : AppCompatActivity() {
 
             val payload = """{
                                 "key": "${credentials.licenseKey}",
-                                "signature": "$signature"
+                                "signature": "$signature",
+                                "softwareVersion": "${BuildConfig.VERSION_NAME}",
+                                "softwareVersionCode": "${BuildConfig.VERSION_CODE}"
                              }"""
 
             Networking.postData(url = "${credentials.baseApiUrl}licenses/verify",
@@ -803,22 +898,26 @@ class MainActivity : AppCompatActivity() {
 
     // Verify license is valid
     private fun handleVerification(call: Call, response: Response?, responseBody: String) {
-
+        Logger.d("licenseCheck","${responseBody.toString()}")
         if (response == null || response != null && response.code >= 400) {
             if (response != null) {
-                openDialog("ERROR", response.code)
+                Utility.clearLicenseInfo(credentials)
+                openDialog(credentials, "UNREGISTERED")
             }
             return
         }
 
-        val jsonResponse = Klaxon().parse<Map<String, Any>>(responseBody)
-        println("verification response: $jsonResponse")
-        if (!(jsonResponse!!["active"] as Boolean)) {
+        val license = Klaxon().parse<License>(responseBody)
+        println("verification response: $license")
+        if (!(license!!.active as Boolean)) {
             openDialog("DISABLED", 0)
         } else {
-            credentials.printerNum = jsonResponse["printerId"].toString()
-            credentials.deviceName = jsonResponse["name"].toString()
-
+            credentials.printerNum = license.printerId.toString()
+            credentials.deviceName = license.name.toString()
+            if(license.features?.manager == true){
+                runOnUiThread { managerModeButton.visibility = View.VISIBLE }
+            }
+            license.features?.let { assignFeatures(it) }
             fetchDeviceMode(credentials)
         }
     }
@@ -835,16 +934,18 @@ class MainActivity : AppCompatActivity() {
             if (modeResponse != null && modeResponse["mode"] != null) {
                 credentials.mode = modeResponse["mode"] as String
 
-                val editor = credentials.prefs.edit()
+                val editor = credentials.sharedPreferences.edit()
 
                 if (credentials.mode == "prod") {
                     credentials.baseApiUrl = "https://focuslink.focuspos.com/v2/"
                     credentials.baseWsUrl = "https://ws.focuslink.focuspos.com/"
                     editor.putString(credentials.PREFS_MODE_KEY, "prod")
+                    prefs.mode = "prod"
                 } else {
                     credentials.baseApiUrl = "https://dev.focuslink.focuspos.com/v2/"
                     credentials.baseWsUrl = "https://dev.ws.focuslink.focuspos.com/"
                     editor.putString(credentials.PREFS_MODE_KEY, "dev")
+                    prefs.mode = "dev"
                 }
 
                 editor.apply()
@@ -874,12 +975,38 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Assign device color pallet based on license features
+    private fun assignFeatures(features: LicenseFeatures){
+        prefs.licenseFeatures = features;
+        if(features.bumpToPrinterIdList != null && features.bumpToPrinterIdList.size > 0){
+            credentials.bumpToPrinterEnabled = true
+        }
+
+        if(features.sms != null){
+            Log.d("smsOrder","sms feature enabled = ${features.sms!!}")
+            credentials.sms = features.sms!!
+        }
+
+        if(features.smsOnBump != null){
+            credentials.smsOnBump = features.smsOnBump!!
+        }
+
+        if(features.smsOnBumpPrompt != null){
+            credentials.smsOnBumpPrompt = features.smsOnBumpPrompt!!
+        }
+
+        runOnUiThread {
+            var mainRecyclerViewBody = this@MainActivity.findViewById<RecyclerView>(R.id.orderRecyclerView_main)
+            mainRecyclerViewBody.setBackgroundColor(Color.parseColor(prefs.licenseFeatures!!.kitchenViewBackgroundColor))
+        }
+    }
+
     // Check device ip vs backend and update if necessary
     private fun compareIp(credentials: DeviceCredentials) {
         val currentIp = credentials.ipAddress
-        val savedIp = credentials.prefs.getString(credentials.PREFS_IP_ADDR, "")
+        val savedIp = credentials.sharedPreferences.getString(credentials.PREFS_IP_ADDR, "")
         if (currentIp != savedIp && savedIp != "") {
-            val editor = credentials.prefs.edit()
+            val editor = credentials.sharedPreferences.edit()
             editor.putString(credentials.PREFS_IP_ADDR, currentIp)
             editor.apply()
             updateIpAddress(credentials, currentIp)
@@ -892,12 +1019,93 @@ class MainActivity : AppCompatActivity() {
         val url = "${credentials.baseApiUrl}licenses/ip"
         val header = "Authorization"
         val headerBody = credentials.generateDeviceLicenseHeader()
-        val payload = """{"key": "${credentials.licenseKey}", "ip": "$currentIp"}, "softwareVersion": "${BuildConfig.VERSION_NAME}"}"""
+        val payload = """{"key": "${credentials.licenseKey}", "ip": "$currentIp", "softwareVersion": "${BuildConfig.VERSION_NAME}"}"""
         Networking.putData(url,header,headerBody,payload) {
             call, response, responseBody ->
             println("update IP Addr response: $responseBody")
         }
     }
+
+    fun smsPrintOrderPrompt(printOrderKey: String, orderReadySms: String?){
+        Logger.d("smsOrder","smsPrintOrderPrompt")
+
+        val smsHeaderText = "(XXX) XXX-${orderReadySms!!.takeLast(4)}"
+        val builder = AlertDialog.Builder(this)
+        val inflater = layoutInflater
+
+        builder.setTitle("Send Order Ready SMS?")
+
+        val dialogLayout = inflater.inflate(R.layout.order_sms_dialog,null)
+        val headerText = dialogLayout.findViewById<TextView>(R.id.order_sms_dialog_header)
+
+        headerText.text = String.format(res.getString(R.string.order_sms_dialog_header),smsHeaderText)
+
+        val yesButton = dialogLayout.findViewById<Button>(R.id.order_sms_button_yes)
+        val noButton = dialogLayout.findViewById<Button>(R.id.order_sms_button_no)
+
+        Logger.d("smsOrder","pass dialog build")
+        builder.setView(dialogLayout)
+
+        val dialog = builder.create()
+        val params = dialog.window!!.attributes
+        val displayMetrics = DisplayMetrics()
+        params.y = 50;
+
+        params.width = ((displayMetrics.widthPixels * 0.5f).toInt())
+        params.height = ((displayMetrics.heightPixels * 0.5f).toInt())
+        dialog.window!!.attributes = params
+        dialog.window!!.setSoftInputMode(
+            WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE
+        )
+        dialog.window!!.setFlags(
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+        )
+        dialog.window!!.decorView.systemUiVisibility = uiFlags
+        dialog.show()
+        dialog.window!!.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
+        Logger.d("smsOrder","pass dialog show")
+        yesButton.setOnClickListener {
+            Logger.d("smsOrder","yes pressed")
+            smsPrintOrderSend(printOrderKey)
+            dialog.dismiss()
+        }
+
+        noButton.setOnClickListener {
+            Logger.d("smsOrder","no pressed")
+            dialog.dismiss()
+        }
+    }
+
+    fun smsPrintOrderSend(printOrderKey: String){
+        Logger.d("smsOrder","in send function")
+
+        CoroutineScope(Dispatchers.IO).launch {
+            withContext(Dispatchers.Main) {
+                try{
+                    Logger.d("smsOrder","before send")
+                    val response = api!!.smsPrintOrder(credentials.venueKey.toInt(), printOrderKey)
+                    Logger.d("smsOrder","after send")
+                    if(response != null && response.smsCount != null){
+                        Logger.d("smsOrder","pass good response")
+                        val printOrder = orderAdapter.dataSet.find { i -> i.orderKey == printOrderKey }
+                        if(printOrder != null){
+                            printOrder.smsCount = response?.smsCount!!
+                            orderAdapter.notifyDataSetChanged()
+                            orderAdapter.updateSavedOrders()
+                            Utility.notification("Order Ready! sent for ${printOrder.checkNum}")
+                        }
+                    }
+                }
+                catch(e: Exception){
+                    Logger.e("smsOrder","${e.message}",false)
+                }
+
+            }
+        }
+
+    }
+
 
     // Open WS for receiving orders
     private fun startWebSocket(credentials: DeviceCredentials, listener: OrderWebSocket) {
@@ -978,7 +1186,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun clearLicenseInfo() {
-        val editor = credentials.prefs.edit()
+        val editor = credentials.sharedPreferences.edit()
         editor.putString(credentials.PREFS_LICENSE_KEY, null)
         editor.putString(credentials.PREFS_VENUE_KEY, null)
         editor.putString(credentials.PREFS_MAC_ADDR, null)
@@ -1000,7 +1208,7 @@ class MainActivity : AppCompatActivity() {
         OrdersModel.bumpedOrders.clear()
         orderAdapter.dataSet.clear()
         OrdersModel.bumpedOrders.add(mutableListOf())
-        val editor = credentials.prefs.edit()
+        val editor = credentials.sharedPreferences.edit()
         editor.putString(credentials.PREFS_ORDERS_KEY, null)
         editor.apply()
         orderAdapter.notifyDataSetChanged()

@@ -1,6 +1,7 @@
 package com.amorphik.focuskitchen
 
 import android.content.Context
+import android.util.Log.d
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -27,19 +28,59 @@ interface ApiService {
             ArrayList<CheckDto>
 
     @POST("v2/stores/{venueKey}/kitchen/device/{licenseKey}/checkin")
-    fun postStatus(
+    suspend fun postStatus(
         @Path("venueKey") venueKey: Int,
         @Path("licenseKey") licenseKey: String,
         @Body body: LicenseStatus
-    ): Call<LicenseStatus>
+    ): LicenseStatus
+
+    @GET("v2/stores/{venueKey}/pos/menus")
+    suspend fun getMenu(
+        @Path("venueKey") venueKey: Int,
+        @Query("source") source: String = "dyn"
+    ): MutableList<MenuItemRecord>
+
+
+    @GET("v2/stores/{venueKey}/data/config/reportgroups")
+    suspend fun getReportGroups(
+        @Path("venueKey") venueKey: Int
+    ): Array<ReportGroupRecord>
+
+    @GET("v4/stores/{venueKey}/pos/checks/items/{menuItemKey}")
+    suspend fun itemSales(
+        @Path("venueKey") venueKey: Int,
+        @Path("menuItemKey") menuItemKey: Int,
+        @Query("days") days: Int = 7
+
+    ): MutableList<MenuItemSalesRecord>
+
+    @POST("v2/stores/{venueKey}/pos/configuration")
+    suspend fun postPosConfigurationChange(
+        @Path("venueKey") venueKey: Int,
+        @Body payload: PosConfigurationDataModel
+    ):PosConfigurationResponseDataModel
+
+    @POST("v2/stores/{venueKey}/printorders/{printOrderKey}/print")
+    suspend fun printPrintOrder(
+        @Path("venueKey") venueKey: Int,
+        @Path("printOrderKey") printOrderKey: String
+    ):FocusLinkApiCommandResponse
+
+    @POST("v2/stores/{venueKey}/printorders/{printOrderKey}/sms")
+    suspend fun smsPrintOrder(
+        @Path("venueKey") venueKey: Int,
+        @Path("printOrderKey") printOrderKey: String
+    ): Order
 
     companion object {
         fun create(ctx: Context): ApiService {
             var baseUrl = ctx.resources.getString(R.string.api_url_prod)
             if (prefs.mode == "dev") {
+
                 baseUrl = ctx.resources.getString(R.string.api_url_dev)
             }
 
+            Logger.d("apiService","baseUrl ${baseUrl}")
             val headerAuthorizationInterceptor = Interceptor { chain ->
                 var request = chain.request()
 
@@ -57,7 +98,7 @@ interface ApiService {
                     }
 
 //                if (request.header("AppInternal-LogRequest") != null) {
-//                    Log.d(TAG, "Logging request to URL: " + request.url().toString());
+//                    Logger.d(TAG, "Logging request to URL: " + request.url().toString());
 //                }
 
                 chain.proceed(request)

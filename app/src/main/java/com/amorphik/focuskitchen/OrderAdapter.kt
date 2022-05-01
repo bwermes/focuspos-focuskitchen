@@ -1,6 +1,8 @@
 package com.amorphik.focuskitchen
 
 import android.annotation.SuppressLint
+import android.content.Context
+import android.content.Intent
 import android.content.res.Resources
 import android.graphics.Color
 import android.graphics.Paint
@@ -8,10 +10,14 @@ import android.os.Handler
 import android.text.Spannable
 import android.text.Spanned
 import android.text.style.StrikethroughSpan
+import android.util.Log
 import android.view.*
 import android.view.animation.OvershootInterpolator
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
+import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.get
 import androidx.core.view.size
 import androidx.recyclerview.widget.RecyclerView
@@ -25,11 +31,13 @@ import kotlinx.android.synthetic.main.order_cell.view.*
 import java.util.*
 import kotlin.concurrent.thread
 import kotlinx.coroutines.*
+import java.security.AccessController.getContext
 
 class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
     val dataSet = OrdersModel.orders
     val ORDER_VIEW_TYPE = 1
     val HEADER_VIEW_TYPE = 2
+    lateinit var context: Context
     var recyclerView: RecyclerView? = null
     var recallAdapter: RecallAdapter? = null
     var availableSpace = 206
@@ -37,11 +45,15 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
     var WRAP_SPACE_THRESHOLD = 0
     lateinit var credentials: DeviceCredentials
     var isAnimating = false
+    lateinit var mainActivity: MainActivity
 
     override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
         super.onAttachedToRecyclerView(recyclerView)
 
         this.recyclerView = recyclerView
+    }
+
+    override fun onViewRecycled(holder: OrderViewHolder) {
     }
     override fun getItemViewType(position: Int): Int {
         return if (dataSet[position].isHeader) HEADER_VIEW_TYPE else ORDER_VIEW_TYPE
@@ -79,9 +91,17 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
         }
 
         if (viewType != ORDER_VIEW_TYPE) {
+            viewHolder.view.setBackgroundColor(Color.parseColor(prefs.licenseFeatures!!.kitchenHeaderBackgroundColor))
+
             viewHolder.view.header_overlay.setOnClickListener {
-                val dpOfBumpButton = 75
-                var dpToPx = dpOfBumpButton * Resources.getSystem().displayMetrics.density
+                val dpOfBumpButton = 70
+                val dpOfPriorityButton = 70
+                val dpOfPrinterButton =if(credentials.bumpToPrinterEnabled) 70 else 0
+                var dpOfSmsButton = if(credentials.sms && viewHolder.view.sms_button.visibility == View.VISIBLE) 70 else 0
+
+
+
+                var dpToPx = (dpOfBumpButton + dpOfPriorityButton + dpOfPrinterButton + dpOfSmsButton) * Resources.getSystem().displayMetrics.density
 
                 if (viewHolder.view.header_overlay.x == 0f) {
                     dpToPx = -dpToPx
@@ -93,19 +113,67 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
                         isAnimating = false
                     }.start()
                 }
+
             }
 
             viewHolder.view.bump_button.setOnClickListener {
                 viewHolder.view.header_overlay.x = 0f
                 bumpOrder(viewHolder.adapterPosition)
             }
-        }
 
+            viewHolder.view.priority_button.setOnClickListener{
+                viewHolder.view.header_overlay.x = 0f
+                priorityOrder(viewHolder.adapterPosition)
+            }
+
+            viewHolder.view.print_button.setOnClickListener {
+                if(credentials.bumpToPrinterEnabled){
+                    viewHolder.view.header_overlay.x = 0f
+                    printPrintOrder(viewHolder.adapterPosition)
+                } else{
+                    Logger.d("printOnDemand","bumpToPrinterEnabled = false")
+                }
+            }
+
+
+            viewHolder.view.sms_button.setOnClickListener {
+                Logger.d("smsOrder","button pressed")
+                if(credentials.sms){
+                    Logger.d("smsOrder","pass credentials")
+                    viewHolder.view.header_overlay.x = 0f
+                    mainActivity.smsPrintOrderPrompt(dataSet[viewHolder.adapterPosition].orderKey, dataSet[viewHolder.adapterPosition].orderReadySms)
+
+                }
+            }
+        } else{
+            viewHolder.view.setBackgroundColor(Color.parseColor(prefs.licenseFeatures!!.kitchenOrderBackgroundColor))
+        }
+        Logger.d("printOnDemand","init")
         return viewHolder
     }
 
     override fun onBindViewHolder(holder: OrderViewHolder, @SuppressLint("RecyclerView") position: Int) {
+
+        if(dataSet[position].isHeader){
+            dataSet[position].lastPosition = position
+
+
+            if(dataSet[position].orderReadySms != null &&  dataSet[position].orderReadySms != ""){
+
+                holder.view.sms_button.visibility = View.VISIBLE
+                holder.view.sms_imageView.visibility = View.VISIBLE
+            } else{
+
+                holder.view.sms_button.visibility = View.GONE
+                holder.view.sms_imageView.visibility = View.GONE
+
+            }
+
+        }
+
         constructOrderItem(holder, position)
+        holder.printOrderSessionKey = dataSet[position].printOrderSessionKey
+        holder.printOrderKey = dataSet[position].orderKey
 
         // Grab the position of the last item on the screen
         // Possibly can be used for wrap before
@@ -246,14 +314,31 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
         }
     }
 
-    private fun bumpOrder(position: Int) {
+    fun bumpOrder(position: Int) {
+        Logger.d("printOrder-Adapter","onBumpOrder called for position ${position}")
         var orderKey: String? = null
+
         try{
+
+
             val toRemove = selectIndices(position)
             val bumpedItems = mutableListOf<OrderAdapterDataItem>()
             for (item in toRemove.reversed()) {
                 bumpedItems.add(0, dataSet[item])
             }
+
+            if(credentials.smsOnBump && bumpedItems[0].orderReadySms != null && bumpedItems[0].orderReadySms != ""){
+                if(credentials.smsOnBumpPrompt){
+                    Thread{
+                        mainActivity.smsPrintOrderPrompt(bumpedItems[0].orderKey, bumpedItems[0].orderReadySms)
+                    }.run()
+                }else{
+                    Thread{
+                        mainActivity.smsPrintOrderSend(bumpedItems[0].orderKey)
+                    }.run()
+                }
+            }
+
 
             if (OrdersModel.bumpedOrders.size > 20) {
                 OrdersModel.bumpedOrders.removeAt(20)
@@ -347,6 +432,58 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
         }
     }
 
+    fun printPrintOrder(position: Int){
+        Logger.d("printOnDemand","init printPrintOrder")
+        val printOrder = dataSet.find { i -> i.lastPosition == position }
+        if(printOrder != null){
+            CoroutineScope(Dispatchers.IO).launch {
+                withContext(Dispatchers.Main) {
+                    try{
+                        val response = api!!.printPrintOrder(credentials.venueKey.toInt(), printOrder.orderKey)
+                        Logger.d("printOnDemand","response status = ${response.status}")
+                    }
+                    catch(e: Exception){
+                        Logger.e("printOnDemand","${e.message}",false)
+                    }
+
+                }
+            }
+        }
+
+    }
+
+    fun priorityOrder(position: Int){
+        dataSet[position].isPriority = true;
+        notifyDataSetChanged()
+        val payload = """{
+                                "message": "printorder-priority",
+                                "key": "${dataSet[position].orderKey}"
+                             }"""
+
+
+        CoroutineScope(Dispatchers.IO).launch {
+            withContext(Dispatchers.Main) {
+                try{
+                    loggly!!.log(
+                        LogglyBody(
+                            "info",
+                            "priorityOrder",
+                            Gson().toJson(dataSet[position]),
+                            dataSet[position].checkNum
+                        )
+                    )
+                }
+                catch(e: Exception){}
+
+            }
+        }
+        Networking.postData(url = "${credentials.baseApiUrl}stores/${credentials.venueKey}/printorders/priority",
+            headerName = "Authorization",
+            headerValue = credentials.generateDeviceLicenseHeader(),
+            payload = payload) { _, _, _ -> }
+
+    }
+
     fun wrapNextColumn(startPosition: Int, recyclerIndex: Int) {
         // Base case
         if (startPosition == DeviceDetails.COLUMN_COUNT - 1) {
@@ -378,8 +515,8 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
             }
         })
     }
-    private fun updateSavedOrders() {
-        val editor = credentials.prefs.edit()
+    fun updateSavedOrders() {
+        val editor = credentials.sharedPreferences.edit()
         val ordersAsJson = Klaxon().toJsonString(OrdersModel.orders)
         editor.putString(credentials.PREFS_ORDERS_KEY, ordersAsJson)
         editor.apply()
@@ -390,11 +527,15 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
             val itemCheckMark = holder.view.order_cell_checkMark_imageView
             val quantityText = if (dataSet[position].quantity > 1) "${dataSet[position].quantity}" else ""
             itemText.text = "${quantityText}  ${dataSet[position].itemName}"
-            itemText.textSize = DeviceDetails.defaultTextSize
+            //itemText.textSize = DeviceDetails.defaultTextSize
             if (dataSet[position].isModifier) {
-                itemText.setTextColor(Color.GREEN)
+                itemText.setTextColor(Color.parseColor(prefs.licenseFeatures!!.kitchenModifierFontColor))
+                itemText.setTextSize(prefs.licenseFeatures!!.kitchenModifierFontSize.toFloat())
+                Logger.d("customUi","setting modifier fontSize ${prefs.licenseFeatures!!.kitchenModifierFontSize.toFloat()}")
             } else {
-                itemText.setTextColor(Color.WHITE)
+                itemText.setTextColor(Color.parseColor(prefs.licenseFeatures!!.kitchenItemFontColor))
+                itemText.setTextSize(prefs.licenseFeatures!!.kitchenItemFontSize.toFloat())
+                Logger.d("customUi","setting item fontSize ${prefs.licenseFeatures!!.kitchenItemFontSize.toFloat()}")
             }
 
             if (dataSet[position].voided) {
@@ -429,23 +570,32 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
                 holder.view.header_overlay.setBackgroundColor(Color.MAGENTA)
                 holder.view.header_layout.setBackgroundColor(Color.MAGENTA)
             } else {
+                Logger.d("printorder-complete","constructOrderItem ${position}")
                 if (dataSet[position].minutesInSystem < credentials.urgentTime) {
+                    Logger.d("printorder-complete","order is normal")
 //                    holder.view.header_overlay.setBackgroundColor(Color.rgb(0, 153, 204))
 //                    holder.view.header_layout.setBackgroundColor(Color.rgb(0, 153, 204))
-                    holder.view.header_overlay.setBackgroundColor(ContextCompat.getColor(
-                        holder.view.context,
-                        R.color.colorFocusLinkSecondaryGray
-                    ))
-                    holder.view.header_layout.setBackgroundColor(ContextCompat.getColor(
-                        holder.view.context,
-                        R.color.colorFocusLinkSecondaryGray
-                    ))
+                    holder.view.header_overlay.setBackgroundColor(Color.parseColor(prefs.licenseFeatures!!.kitchenHeaderBackgroundColor))
+                    holder.view.header_layout.setBackgroundColor(Color.parseColor(prefs.licenseFeatures!!.kitchenHeaderBackgroundColor))
 
                 } else {
-                    holder.view.header_overlay.setBackgroundColor(Color.RED)
-                    holder.view.header_layout.setBackgroundColor(Color.RED)
-
+                    Logger.d("printorder-complete","order is urgent")
+                    holder.view.header_overlay.setBackgroundColor(Color.parseColor(prefs.licenseFeatures!!.kitchenUrgentHeaderBackgroundColor))
+                    holder.view.header_layout.setBackgroundColor(Color.parseColor(prefs.licenseFeatures!!.kitchenUrgentHeaderBackgroundColor))
                 }
+
+                if(dataSet[position].isPriority){
+                    Logger.d("printorder-complete","order is priority")
+                    holder.view.header_overlay.setBackgroundColor(Color.parseColor(prefs.licenseFeatures!!.kitchenPriorityHeaderBackgroundColor))
+                    holder.view.header_layout.setBackgroundColor(Color.parseColor(prefs.licenseFeatures!!.kitchenPriorityHeaderBackgroundColor))
+                }
+
+                if(dataSet[position].isComplete){
+                    Logger.d("printorder-complete","order is complete")
+                    holder.view.header_overlay.setBackgroundColor(Color.parseColor(prefs.licenseFeatures!!.kitchenCompleteHeaderBackgroundColor))
+                    holder.view.header_layout.setBackgroundColor(Color.parseColor(prefs.licenseFeatures!!.kitchenCompleteHeaderBackgroundColor))
+                }
+
             }
             holder.view.header_cell_server_text.text = dataSet[position].server
             holder.view.header_cell_time_text.text = dataSet[position].timeInSystem
@@ -456,10 +606,20 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
             }
             holder.view.header_cell_order_type_text.text = dataSet[position].orderType
 
-            holder.view.header_cell_server_text.textSize = DeviceDetails.defaultTextSize
-            holder.view.header_cell_time_text.textSize = DeviceDetails.defaultTextSize
-            holder.view.header_cell_table_name_text.textSize = DeviceDetails.defaultTextSize
-            holder.view.header_cell_order_type_text.textSize = DeviceDetails.defaultTextSize
+            if(dataSet[position].smsCount > 0){
+                Logger.d("smsOrder","after sms count = ${dataSet[position].smsCount}")
+                holder.view.header_cell_sms_block.visibility = View.VISIBLE
+                holder.view.header_cell_sms_sent.text = "(${dataSet[position].smsCount.toString()})"
+            }
+
+//            holder.view.header_cell_server_text.textSize = DeviceDetails.defaultTextSize
+//            holder.view.header_cell_time_text.textSize = DeviceDetails.defaultTextSize
+//            holder.view.header_cell_table_name_text.textSize = DeviceDetails.defaultTextSize
+//            holder.view.header_cell_order_type_text.textSize = DeviceDetails.defaultTextSize
+            holder.view.header_cell_server_text.textSize = prefs.licenseFeatures!!.kitchenHeaderFontSize.toFloat()
+            holder.view.header_cell_time_text.textSize = prefs.licenseFeatures!!.kitchenHeaderFontSize.toFloat()
+            holder.view.header_cell_table_name_text.textSize = prefs.licenseFeatures!!.kitchenHeaderFontSize.toFloat()
+            holder.view.header_cell_order_type_text.textSize = prefs.licenseFeatures!!.kitchenHeaderFontSize.toFloat()
 
         }
     }
@@ -503,6 +663,15 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
     }
 }
 
-class OrderViewHolder(val view: View): RecyclerView.ViewHolder(view) {
+class OrderViewHolder(val view: View,
+                      var printOrderSessionKey: String? = null,
+                      var printOrderKey: String? = null): RecyclerView.ViewHolder(view) {
 
 }
+
+data class PrintOrderSessionPosition(
+    var position: Int = 0,
+    var printOrderSessionKey: String? = null,
+    var printOrderKey: String? = null
+)
+

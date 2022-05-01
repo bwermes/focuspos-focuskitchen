@@ -9,9 +9,9 @@
 
     <View
         android:id="@+id/bump_button"
-        android:layout_width="71dp"
+        android:layout_width="65dp"
         android:layout_height="0dp"
-        android:background="#FF9800"
+        android:background="#5E8F32"
         app:layout_constraintBottom_toBottomOf="@+id/header_overlay"
         app:layout_constraintEnd_toStartOf="@+id/header_cell_right_border"
         app:layout_constraintTop_toBottomOf="@+id/header_cell_top_border" />
@@ -26,6 +26,66 @@
         app:layout_constraintStart_toStartOf="@+id/bump_button"
         app:layout_constraintTop_toTopOf="@+id/bump_button"
         app:srcCompat="@drawable/bell" />
+
+    <View
+        android:id="@+id/priority_button"
+        android:layout_width="65dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="@id/header_overlay"
+        app:layout_constraintTop_toBottomOf="@id/header_cell_top_border"
+        app:layout_constraintEnd_toStartOf="@id/bump_button"
+        android:background="#FF9800"/>
+
+    <ImageView
+        android:id="@+id/priority_imageView"
+        android:layout_width="50dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintTop_toTopOf="@id/priority_button"
+        app:layout_constraintBottom_toBottomOf="@id/priority_button"
+        app:layout_constraintStart_toStartOf="@id/priority_button"
+        app:layout_constraintEnd_toEndOf="@id/priority_button"
+        app:srcCompat="@drawable/alarm_exclamation"
+        android:scaleType="fitCenter"
+        />
+
+    <View
+        android:id="@+id/print_button"
+        android:layout_width="65dp"
+        android:layout_height="0dp"
+        app:layout_constraintEnd_toStartOf="@id/priority_button"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:background="@color/colorFocusLinkBlue"/>
+
+    <ImageView
+        android:id="@+id/print_imageView"
+        android:layout_width="50dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="@id/print_button"
+        app:layout_constraintEnd_toEndOf="@id/print_button"
+        app:layout_constraintTop_toTopOf="@id/print_button"
+        app:layout_constraintBottom_toBottomOf="@id/print_button"
+        android:src="@drawable/print"/>
+
+    <View
+        android:id="@+id/sms_button"
+        android:layout_width="65dp"
+        android:layout_height="0dp"
+        app:layout_constraintEnd_toStartOf="@id/print_button"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:background="@color/yellow_danger"/>
+
+    <ImageView
+        android:id="@+id/sms_imageView"
+        android:layout_width="50dp"
+        android:layout_height="0dp"
+        app:layout_constraintStart_toStartOf="@id/sms_button"
+        app:layout_constraintEnd_toEndOf="@id/sms_button"
+        app:layout_constraintTop_toTopOf="@id/sms_button"
+        app:layout_constraintBottom_toBottomOf="@id/sms_button"
+        android:src="@drawable/message_sms"/>
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/header_overlay"
@@ -49,6 +109,43 @@
             android:textSize="21sp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent" />
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/header_cell_sms_block"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            app:layout_constraintEnd_toStartOf="@id/header_cell_time_text"
+            app:layout_constraintTop_toTopOf="@id/header_cell_time_text"
+            app:layout_constraintBottom_toBottomOf="@id/header_cell_time_text"
+            android:layout_marginEnd="15dp">
+            <ImageView
+                android:id="@+id/header_cell_sms_icon"
+                android:layout_width="20dp"
+                android:layout_height="0dp"
+                android:src="@drawable/mobile_signal"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                android:layout_marginEnd="5dp"
+                />
+
+            <TextView
+                android:id="@+id/header_cell_sms_sent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toEndOf="@id/header_cell_sms_icon"
+                android:text="@string/sms_count_sent"
+                android:textSize="20dp"
+                android:textColor="@color/white"
+                android:layout_marginEnd="15dp"
+                />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+
 
         <TextView
             android:id="@+id/header_cell_time_text"

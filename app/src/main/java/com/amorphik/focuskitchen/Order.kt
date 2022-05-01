@@ -1,6 +1,10 @@
 package com.amorphik.focuskitchen
 
+import com.google.gson.annotations.SerializedName
+
 class Order (val printerId: Int,
+             val checkId: Int?,
+             val printOrderSessionKey: String?,
              val printerName: String,
              val revenueCenter: String,
              val orderType: String,
@@ -15,7 +19,9 @@ class Order (val printerId: Int,
              val delayTime: Int,
              val orderDisplayTime: String,
              val customerName: String,
-             val items: Array<OrderItem>) {
+             val items: Array<OrderItem>,
+             @SerializedName("orderReadySmsCount") var smsCount: Int? = 0,
+            @SerializedName("orderReadySms") var orderReadySms: String? = null) {
 
     var bumpTime : String = "0:00:00"
     var key: String = ""

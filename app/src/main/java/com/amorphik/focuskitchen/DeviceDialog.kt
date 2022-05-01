@@ -7,6 +7,7 @@ import android.content.DialogInterface
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.fragment.app.FragmentManager
@@ -32,6 +33,8 @@ class DeviceDialog: AppCompatDialogFragment() {
 
         val inflater = activity?.layoutInflater
 
+
+
         dialogView = inflater?.inflate(R.layout.info_dialog, null)
         deviceNameText = dialogView!!.findViewById(R.id.dev_name_text)
         printerNumText = dialogView!!.findViewById(R.id.print_num_text)
@@ -40,6 +43,7 @@ class DeviceDialog: AppCompatDialogFragment() {
         venueKeyText = dialogView!!.findViewById(R.id.store_key_text)
         versionText = dialogView!!.findViewById(R.id.version_text)
         setInfo()
+
 
         // Sets buttons for the dialog
         // Positive button = close
@@ -90,9 +94,9 @@ class DeviceDialog: AppCompatDialogFragment() {
         return dialog
     }
 
-    private fun clearLicenseInfo() {
+    fun clearLicenseInfo() {
         // Null out the saved license details
-        val editor = credentials.prefs.edit()
+        val editor = credentials.sharedPreferences.edit()
         editor.putString(credentials.PREFS_LICENSE_KEY, null)
         editor.putString(credentials.PREFS_VENUE_KEY, null)
         editor.putString(credentials.PREFS_MAC_ADDR, null)
@@ -119,7 +123,7 @@ class DeviceDialog: AppCompatDialogFragment() {
         OrdersModel.bumpedOrders.add(mutableListOf())
 
         // Clear any saved orders
-        val editor = credentials.prefs.edit()
+        val editor = credentials.sharedPreferences.edit()
         editor.putString(credentials.PREFS_ORDERS_KEY, null)
         editor.apply()
 

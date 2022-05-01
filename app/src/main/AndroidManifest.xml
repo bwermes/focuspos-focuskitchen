@@ -15,7 +15,6 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
-
         >
         <activity android:name="com.amorphik.focuskitchen.MainActivity"
                   android:screenOrientation="landscape">
@@ -25,6 +24,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name="com.amorphik.focuskitchen.itemControl.ActivityItemView"
+            android:screenOrientation="landscape"/>
+
+        <activity android:name=".ActivityCheckView"
+            android:screenOrientation="landscape"/>
         <meta-data
             android:name="preloaded_fonts"
             android:resource="@array/preloaded_fonts" />

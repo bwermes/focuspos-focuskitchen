@@ -94,6 +94,15 @@ data class CheckSurvey (
     val happy: Boolean? = null
 ): Serializable
 
+data class DailySales (
+    @SerializedName("quantity"     ) var quantity     : Int?                   = null,
+    @SerializedName("revenue"      ) var revenue      : Int?                   = null,
+    @SerializedName("discount"     ) var discount     : Int?                   = null,
+    @SerializedName("businessDate" ) var businessDate : String?                = null,
+    @SerializedName("dayOfWeek") var dayOfWeek : String? = null,
+    @SerializedName("hourlySales"  ) var hourlySales  : ArrayList<HourlySales> = arrayListOf()
+): Serializable
+
 data class Employee (
     val venueKey : Int,
     val ID : Int,
@@ -196,38 +205,95 @@ data class ItemSingleButton (
     var disabled: Boolean? = null
 )
 
-data class License(
-    var key: String? = null,
-    var secret: String? = null,
-    var venueKey: Int? = 0,
-    var venueName: String? = null,
-    var name: String? = null,
-    var dealerKey: String? = null,
-    var dealerName: String? = null,
-    var features: LicenseFeatures? = null,
-    var status: String? = null,
-    var latestVersion: Double? = 0.0,
-    var alertMessage: String? = null,
-    var posStationId: Int? = null
+data class FocusLinkApiCommandResponse(
+    @SerializedName("status") val status: String,
+    @SerializedName("statuCode") val statusCode: Int,
+    @SerializedName("message") val message: String
 )
 
-data class LicenseFeatures(
-    val pay: Boolean,
-    val order: Boolean,
-    val loyaltyTab: Boolean,
-    val survey: Boolean,
-    val loyalty: Boolean,
-    val onServerPay: Boolean,
-    val nfcPay: Boolean,
-    val giftCardPay: Boolean,
-    val cashPay: Boolean,
-    val qrPay: Boolean,
-    val customer: Boolean,
-    val sms: Boolean,
-    val promptTableNumber: Boolean,
-    val promptPosition: Boolean,
-    val promptTip: Boolean
+data class HourlySales (
+
+    @SerializedName("quantity" ) var quantity : Int?    = null,
+    @SerializedName("revenue"  ) var revenue  : Int?    = null,
+    @SerializedName("discount" ) var discount : Int?    = null,
+    @SerializedName("hour"     ) var hour     : String? = null,
+@SerializedName("hourBlockName") var hourBlockName : String? = null
 )
+
+data class License(
+    @SerializedName("key"              ) var key              : String?   = null,
+    @SerializedName("secret") var secret: String? = null,
+   @SerializedName("name"             ) var name             : String?   = null,
+   @SerializedName("type"             ) var type             : String?   = null,
+   @SerializedName("venueKey"         ) var venueKey         : Int?      = null,
+   @SerializedName("dealerKey"        ) var dealerKey        : String?   = null,
+   @SerializedName("integratorKey"    ) var integratorKey    : String?   = null,
+   @SerializedName("bundleKey"        ) var bundleKey        : String?   = null,
+   @SerializedName("mac"              ) var mac              : String?   = null,
+   @SerializedName("ip"               ) var ip               : String?   = null,
+   @SerializedName("printerId"        ) var printerId        : Int?      = null,
+   @SerializedName("stationId"        ) var stationId        : String?   = null,
+   @SerializedName("posStationId"     ) var posStationId     : String?   = null,
+   @SerializedName("claimed"          ) var claimed          : Boolean?  = null,
+   @SerializedName("active"           ) var active           : Boolean?  = null,
+   @SerializedName("created"          ) var created          : String?   = null,
+   @SerializedName("updated"          ) var updated          : String?   = null,
+   @SerializedName("lastUsed"         ) var lastUsed         : String?   = null,
+   @SerializedName("softwareVersion"  ) var softwareVersion  : String?   = null,
+   @SerializedName("posVersion"       ) var posVersion       : String?   = null,
+   @SerializedName("deviceType"       ) var deviceType       : String?   = null,
+   @SerializedName("price"            ) var price            : String?   = null,
+   @SerializedName("paymentType"      ) var paymentType      : String?   = null,
+   @SerializedName("paymentName"      ) var paymentName      : String?   = null,
+   @SerializedName("sourceName"       ) var sourceName       : String?   = null,
+   @SerializedName("suppressEmailSms" ) var suppressEmailSms : Int?      = null,
+   @SerializedName("features"         ) var features         : LicenseFeatures? = LicenseFeatures()
+
+)
+
+
+data class LicenseFeatures (
+
+    @SerializedName("pay") var pay : Boolean?          = false,
+    @SerializedName("order") var order: Boolean?          = false,
+    @SerializedName("loyaltyTab") var loyaltyTab: Boolean?          = false,
+    @SerializedName("survey") var survey: Boolean?          = false,
+    @SerializedName("loyalty") var loyalty: Boolean?          = false,
+    @SerializedName("timeclock") var timeclock: Boolean?          = false,
+    @SerializedName("manager") var manager: Boolean?          = false,
+    @SerializedName("kiosk") var kiosk                 : Boolean?          = false,
+    @SerializedName("host") var host                  : Boolean?          = false,
+    @SerializedName("kitchen") var kitchen               : Boolean?          = false,
+    @SerializedName("expo") var expo                  : Boolean?          = false,
+    @SerializedName("orderReady") var orderReady            : Boolean?          = false,
+    @SerializedName("onServerPay") var onServerPay           : Boolean?          = false,
+    @SerializedName("nfcPay") var nfcPay                : Boolean?          = false,
+    @SerializedName("giftCardPay") var giftCardPay           : Boolean?          = false,
+    @SerializedName("customer") var customer              : Boolean?          = false,
+    @SerializedName("cashPay") var cashPay               : Boolean?          = false,
+    @SerializedName("qrPay") var qrPay                 : Boolean?          = false,
+    @SerializedName("sms") var sms                   : Boolean?          = false,
+    @SerializedName("smsOnBump") var smsOnBump: Boolean? = false,
+    @SerializedName("smsOnBumpPrompt") var smsOnBumpPrompt: Boolean? = true,
+    @SerializedName("promptTableNumber") var promptTableNumber     : Boolean?          = false,
+    @SerializedName("promptPosition") var promptPosition        : Boolean?          = false,
+    @SerializedName("promptTip") var promptTip             : Boolean?          = false,
+    @SerializedName("bumpToPrinterIdList") var bumpToPrinterIdList : List<String> = emptyList(),
+    @SerializedName("bumpFromPrinterIdList") var bumpFromPrinterIdList: List<Int> = emptyList(),
+    @SerializedName("kitchenHeaderFontSize") var kitchenHeaderFontSize: Int = 20,
+    @SerializedName("kitchenItemFontSize") var kitchenItemFontSize: Int = 30,
+    @SerializedName("kitchenModifierFontSize") var kitchenModifierFontSize: Int = 30,
+    @SerializedName("kitchenHeaderBackgroundColor") var kitchenHeaderBackgroundColor: String = "#56707D",
+    @SerializedName("kitchenUrgentHeaderBackgroundColor") var kitchenUrgentHeaderBackgroundColor: String = "#FF0000",
+    @SerializedName("kitchenCompleteHeaderBackgroundColor") var kitchenCompleteHeaderBackgroundColor: String = "#5E8F32",
+    @SerializedName("kitchenPriorityHeaderBackgroundColor") var kitchenPriorityHeaderBackgroundColor: String = "#f99d24",
+    @SerializedName("kitchenOrderBackgroundColor") var kitchenOrderBackgroundColor: String = "#000000",
+    @SerializedName("kitchenItemFontColor") var kitchenItemFontColor: String = "#FFFFFF",
+    @SerializedName("kitchenModifierFontColor") var kitchenModifierFontColor: String = "#00FF00",
+    @SerializedName("kitchenHeaderFontColor") var kitchenHeaderFontColor: String = "#FFFFFF",
+    @SerializedName("kitchenViewBackgroundColor") var kitchenViewBackgroundColor: String = "#000000"
+)
+
 
 data class LicenseStatus(
     var key: String? = null,
@@ -238,235 +304,74 @@ data class LicenseStatus(
     var lastPulse: String? = null
 )
 
-data class Menu(
-    val modifierSub: String,
-    val modifierExtra: String,
-    val modifierNo: String,
-    val prepModifier1: String,
-    val prepModifier2: String,
-    val prepModifier3: String,
-    val prepModifier4: String,
-    val prepModifier5: String,
-    val prepModifier6: String,
-    val prepModifier7: String,
-    val prepModifier8: String,
-    val prepModifier9: String,
-    val prepModifier10: String,
-    val course1: String?,
-    val course2: String?,
-    val course3: String?,
-    val course4: String?,
-    val course5: String?,
-    val course6: String?,
-    val course7: String?,
-    val course8: String?,
-    val course9: String?,
-    val course10: String?,
-    val creditCardPassAlongFeePercentage: Double?,
-    val creditCardPassAlongFeeName: String?,
-    val timeRatesSpanTimeRanges: Boolean?,
-    val alphanumericTableNumbers: Boolean?,
-    val canvases: ArrayList<MenuCanvas>,
-    val menuItems: ArrayList<MenuMenuItem>,
-    val priceLevels: ArrayList<MenuPriceLevel>,
-    val stations: ArrayList<MenuStation>,
-    val timeRanges: ArrayList<MenuTimeRange>
+//source: from Dynamo
+//https://json2kt.com/
+data class MenuItemRecord(
+    @SerializedName("count"      ) var count      : Int?          = null,
+    @SerializedName("countdown"      ) var countdown      : Boolean           = false,
+    @SerializedName("guestCheckName" ) var guestCheckName : String?           = null,
+    @SerializedName("imageKey"       ) var imageKey       : String?           = null,
+    @SerializedName("lastUpdated"    ) var lastUpdated    : String?           = null,
+    @SerializedName("menuItemId"     ) var menuItemId     : String?           = null,
+    @SerializedName("menuItemKey"    ) var menuItemKey    : Int?              = null,
+    @SerializedName("name"           ) var name           : String?           = null,
+    @SerializedName("outOfStock"     ) var outOfStock     : Boolean         = false,
+    @SerializedName("pk"             ) var pk             : String?           = null,
+    @SerializedName("price"          ) var price          : Double              = 0.00,
+    @SerializedName("price2"         ) var price2         : Double              = 0.00,
+    @SerializedName("price3"         ) var price3         : Double              = 0.00,
+    @SerializedName("price4"         ) var price4         : Double              = 0.00,
+    @SerializedName("price5"         ) var price5         : Double              = 0.00,
+    @SerializedName("price6"         ) var price6         : Double               = 0.00,
+    @SerializedName("priceExtra"     ) var priceExtra     : Double?              = 0.00,
+    @SerializedName("priceMod"       ) var priceMod       : Double?              = 0.00,
+    @SerializedName("priceNo"        ) var priceNo        : Double?              = 0.00,
+    @SerializedName("priceSub"       ) var priceSub       : Double?              = 0.00,
+    @SerializedName("sk"             ) var sk             : String?           = null,
+    @SerializedName("tagKeys"        ) var tagKeys        : ArrayList<String> = arrayListOf(),
+@SerializedName("reportGroupId") var reportGroupId: Int? = null
+): Serializable
+
+data class MenuItemSalesRecord(
+    @SerializedName("menuItemKey"     ) var menuItemKey     : Int?                  = null,
+    @SerializedName("name"            ) var name            : String?               = null,
+    @SerializedName("quantity"        ) var quantity        : Int?                  = null,
+    @SerializedName("revenue"         ) var revenue         : Int?                  = null,
+    @SerializedName("discount"        ) var discount        : String?               = null,
+@SerializedName("menuItem"        ) var menuItem        : MenuItemRecord?             = MenuItemRecord(),
+    @SerializedName("reportGroupId"   ) var reportGroupId   : Int?                  = null,
+    @SerializedName("reportGroupName" ) var reportGroupName : String?               = null,
+    @SerializedName("dailySales"      ) var dailySales      : ArrayList<DailySales> = arrayListOf()
 )
 
-data class MenuCanvas (
-    val id: String,
-    val name: String?,
-    val prepModifier1: String?,
-    val prepModifier2: String?,
-    val prepModifier3: String?,
-    val menuItems: ArrayList<MenuMenuItem>
-)
+enum class PosConfigurationChangeType(val changeType: Int){
+    OUTOFSTOCK(1),
+    COUNTVALUE(2),
+    PRICE(3),
+    ITEMNAME(4)
+}
 
-data class MenuMenuItem(
-    val id: Int,
-    var name: String?,
-    var price: Double?,
-    var price2: Double?,
-    var price3: Double?,
-    var price4: Double?,
-    var price5: Double?,
-    var price6: Double?,
-    var priceMod: Double?,
-    var priceDoublePercent: Double?,
-    var modUnit: Int?,
-    var priceExtra: Double?,
-    var priceSub: Double?,
-    var priceNo: Double?,
-    var kitchenComment: Boolean?,
-    var variablePrice: Boolean?,
-    var outOfStock: Boolean?,
-    var courseNumber: Int?,
-    var positionPrompt: Boolean?,
-    var level: Int?,
-    var priceLevel: Int?,
-    var effectiveTimeRange: Int?,
-    var priceTime1: Int?,
-    var priceTime2: Int?,
-    var priceTime3: Int?,
-    var priceTime4: Int?,
-    var priceTime5: Int?,
-    var priceTime6: Int?,
-    var dependentItemKey: Int?,
-    var suggestionItemKey: Int?,
-    var suggestionText: String?,
-    var modCanvases: ArrayList<MenuMenuItemModCanvas>
-)
+data class PosConfigurationDataModel(
+    var recordId: String? = null,
+    var value: String? = null,
+    var posConfigurationChangeType: Int? = null
+): Serializable
 
-data class MenuItemRecord (
+data class PosConfigurationResponseDataModel(
+    @SerializedName("pk"                         ) var pk                         : String? = null,
+    @SerializedName("sk"                         ) var sk                         : String? = null,
+    @SerializedName("configurationKey"           ) var configurationKey           : String? = null,
+    @SerializedName("posRecordId"                ) var posRecordId                : String? = null,
+    @SerializedName("value"                      ) var value                      : String? = null,
+    @SerializedName("posConfigurationChangeType" ) var posConfigurationChangeType : Int?    = null,
+    @SerializedName("created"                    ) var created                    : String? = null,
+    @SerializedName("updated"                    ) var updated                    : String? = null,
+    @SerializedName("status"                     ) var status                     : String? = null,
+    @SerializedName("posObject"                  ) var posObject                  : String? = null,
+    @SerializedName("fileName"                   ) var fileName                   : String? = null,
+    @SerializedName("url"                        ) var url                        : String? = null
+): Serializable
 
-    @SerializedName("ID") var ID : String,
-    @SerializedName("INVENTORYID") var INVENTORYID : String,
-    @SerializedName("GuestCheckName") var GuestCheckName : String,
-    @SerializedName("SortKey") var SortKey : String,
-    @SerializedName("MenuName") var MenuName : String,
-    @SerializedName("RemoteName") var RemoteName : String,
-    @SerializedName("AudioFile") var AudioFile : String? = null,
-    @SerializedName("SuggestionText") var SuggestionText : String? = null,
-    @SerializedName("venueKey") var venueKey : Int,
-    @SerializedName("RecordNumber") var RecordNumber : Int,
-    @SerializedName("SuggestionID") var SuggestionID : Int? = null,
-    @SerializedName("DependentItem") var DependentItem : Int? = null,
-    @SerializedName("ReportGroup") var ReportGroup : Int,
-    @SerializedName("Type") var Type : Int,
-    @SerializedName("PrinterGroupID") var PrinterGroupID : Int,
-    @SerializedName("CourseID") var CourseID : Int,
-    @SerializedName("BeverageSatisfiesCount") var BeverageSatisfiesCount : Int,
-    @SerializedName("Concept") var Concept : Int,
-    @SerializedName("MealStageID") var MealStageID : Int,
-    @SerializedName("DblPercent") var DblPercent : String,
-    @SerializedName("PriceLevelID") var PriceLevelID : Int,
-    @SerializedName("Priority") var Priority : Int,
-    @SerializedName("Count") var Count : Int,
-    @SerializedName("ConversationalMods") var ConversationalMods : Boolean,
-    @SerializedName("IncludeInItemPrice") var IncludeInItemPrice : Boolean,
-    @SerializedName("Deleted") var Deleted : Boolean,
-    @SerializedName("SatisfiesBeverage") var SatisfiesBeverage : Boolean,
-    @SerializedName("RequiresBeverage") var RequiresBeverage : Boolean,
-    @SerializedName("GuestCheck") var GuestCheck : Boolean,
-    @SerializedName("VariablePrice") var VariablePrice : Boolean,
-    @SerializedName("KitchenComment") var KitchenComment : Boolean,
-    @SerializedName("FollowItem") var FollowItem : Boolean,
-    @SerializedName("Countdown") var Countdown : Boolean,
-    @SerializedName("OutOfStock") var OutOfStock : Boolean,
-    @SerializedName("RepeatRound") var RepeatRound : Boolean,
-    @SerializedName("KitchenPrice") var KitchenPrice : Boolean,
-    @SerializedName("Scale") var Scale : Boolean,
-    @SerializedName("RequestTareWeight") var RequestTareWeight : Boolean,
-    @SerializedName("IncrementGuests") var IncrementGuests : Boolean,
-    @SerializedName("FractionQuantity") var FractionQuantity : Boolean,
-    @SerializedName("Inventoried") var Inventoried : Boolean,
-    @SerializedName("FoodStampEligible") var FoodStampEligible : Boolean,
-    @SerializedName("TimedRate") var TimedRate : Boolean,
-    @SerializedName("SteeringModifier") var SteeringModifier : Boolean,
-    @SerializedName("ReclassifyTax") var ReclassifyTax : Boolean,
-    @SerializedName("QuantityPrompt") var QuantityPrompt : Boolean,
-    @SerializedName("PositionPrompt") var PositionPrompt : Boolean,
-    @SerializedName("RequireApproval") var RequireApproval : Boolean,
-    @SerializedName("MenuItemPriceList") var MenuItemPriceList : MenuItemPriceList,
-    @SerializedName("MenuItemTaxes") var MenuItemTaxes : List<MenuItemTaxes>
-
-)
-
-data class MenuItemPriceList (
-
-    @SerializedName("venueKey") var venueKey : Int,
-    @SerializedName("MenuItemRecordID") var MenuItemRecordID : Int,
-    @SerializedName("Price1") var Price1 : Double,
-    @SerializedName("Price2") var Price2 : Double,
-    @SerializedName("Price3") var Price3 : Double,
-    @SerializedName("Price4") var Price4 : Double,
-    @SerializedName("Price5") var Price5 : Double,
-    @SerializedName("Price6") var Price6 : Double,
-    @SerializedName("Price7") var Price7 : Double,
-    @SerializedName("Price8") var Price8 : Double,
-    @SerializedName("Price9") var Price9 : Double,
-    @SerializedName("Price10") var Price10 : Double,
-    @SerializedName("PriceTimeId1") var PriceTimeId1 : Int,
-    @SerializedName("PriceTimeId2") var PriceTimeId2 : Int,
-    @SerializedName("PriceTimeId3") var PriceTimeId3 : Int,
-    @SerializedName("PriceTimeId4") var PriceTimeId4 : Int,
-    @SerializedName("PriceTimeId5") var PriceTimeId5 : Int,
-    @SerializedName("PriceTimeId6") var PriceTimeId6 : Int,
-    @SerializedName("Updated") var Updated : String
-
-)
-
-data class MenuItemTaxes (
-
-    @SerializedName("venueKey") var venueKey : Int,
-    @SerializedName("TaxID") var TaxID : Int,
-    @SerializedName("MenuItemRecordId") var MenuItemRecordId : Int,
-    @SerializedName("Enabled") var Enabled : Boolean
-
-)
-
-data class MenuMenuItemModCanvas(
-    val id: String,
-    val canvasId: String,
-    val min: String,
-    val max: String,
-    var free: Int?,
-    var name: String?,
-    var prepModifier1: String?,
-    var prepModifier2: String?,
-    var prepModifier3: String?,
-    var menuItems: ArrayList<MenuMenuItem>?,
-    var idx: Int?
-)
-
-data class MenuPriceLevel (
-    val id: Int,
-    val name: String,
-    val price_name1: String?,
-    val price_name2: String?,
-    val price_name3: String?,
-    val price_name4: String?,
-    val price_name5: String?,
-    val price_name6: String?
-)
-
-data class MenuStation (
-    val id: Int,
-    val name: String
-)
-
-data class MenuTimeRange (
-    val id: Int,
-    val name: String,
-    val day1Start1: String?,
-    val day1End1: String?,
-    val day1Start2: String?,
-    val day1End2: String?,
-    val day2Start1: String?,
-    val day2End1: String?,
-    val day2Start2: String?,
-    val day2End2: String?,
-    val day3Start1: String?,
-    val day3End1: String?,
-    val day3Start2: String?,
-    val day3End2: String?,
-    val day4Start1: String?,
-    val day4End1: String?,
-    val day4Start2: String?,
-    val day4End2: String?,
-    val day5Start1: String?,
-    val day5End1: String?,
-    val day5Start2: String?,
-    val day5End2: String?,
-    val day6Start1: String?,
-    val day6End1: String?,
-    val day6Start2: String?,
-    val day6End2: String?,
-    val day7Start1: String?,
-    val day7End1: String?,
-    val day7Start2: String?,
-    val day7End2: String?
-)
 
 data class PosCheck(
     val id: Int?,
@@ -546,6 +451,8 @@ data class PosStartCheckNotify(
     val checkId: Int,
     val checkKey: String? = null
 )
+
+
 
 data class ReportGroupRecord(
     @SerializedName("venueKey") var venueKey : String,

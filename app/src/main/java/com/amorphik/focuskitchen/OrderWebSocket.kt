@@ -1,10 +1,14 @@
 package com.amorphik.focuskitchen
 
+import android.content.Intent
 import android.graphics.Color
 import android.media.MediaPlayer
+import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.widget.ImageView
+import android.widget.Toast
 import com.beust.klaxon.Klaxon
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
@@ -16,7 +20,14 @@ import nl.dionsegijn.konfetti.models.Size
 import okhttp3.*
 import okio.ByteString
 
-class OrderWebSocket(private val credentials: DeviceCredentials, private val adapter: OrderAdapter) : WebSocketListener() {
+
+
+
+
+class OrderWebSocket(private val credentials: DeviceCredentials,
+                     private val adapter: OrderAdapter,
+                     private val context: Context) : WebSocketListener() {
+
     lateinit var steveImageView: ImageView
     lateinit var konfettiView: KonfettiView
     lateinit var mediaPlayer: MediaPlayer
@@ -24,10 +35,12 @@ class OrderWebSocket(private val credentials: DeviceCredentials, private val ada
     lateinit var client: OkHttpClient
     var isConnected = false
 
+
     override fun onOpen(webSocket: WebSocket, response: Response) {
         sendRegistrationMessage(webSocket)
         println("Websocket opening: $response")
         isConnected = true
+        intent = Intent(OrderWebSocket.BROADCAST_ACTION)
 
         if((venueKey == "" || venueKey == null) && (credentials.venueKey != "")){
             venueKey = credentials.venueKey
@@ -100,13 +113,42 @@ class OrderWebSocket(private val credentials: DeviceCredentials, private val ada
     override fun onMessage(webSocket: WebSocket, text: String) {
         val printerMessage = Klaxon().parse<Map<String, String>>(text)
         println("Message received: ${printerMessage.toString()}")
+        Logger.d("printorder-message","Message received ${printerMessage.toString()}")
 
-        if (printerMessage != null &&
+        if(printerMessage != null &&
             printerMessage["message"] != null &&
-            printerMessage["message"] == "printorder-pending" &&
-            printerMessage["key"] != null) {
-            fetchPrinterOrder(printerMessage.getValue("key"))
+            printerMessage["key"] != null){
+
+            when (printerMessage["message"]){
+                "printorder-pending" ->{
+                    if(printerMessage["key"] != null){
+                        fetchPrinterOrder(printerMessage.getValue("key"))
+                    }
+                }
+                "printorder-bump" ->{
+                    //Logger.d("printOrder-message","Remote bump request ${printerMessage["key"]}")
+                    var sourceDeviceName = if(printerMessage["sourceDeviceName"] != null) printerMessage["sourceDeviceName"] else null
+                    var checkId = if(printerMessage["checkId"] != null) printerMessage["checkId"].toString() else null
+                    if(checkId != null && sourceDeviceName != null){
+                        remoteBumpOrder(printerMessage["key"]!!, checkId, sourceDeviceName)
+                    }
+                }
+
+                "printorder-complete" ->{
+                    Logger.d("printorder-complete","Remote order complete request ${printerMessage["key"]}")
+                    remoteCompleteOrder(printerMessage["key"]!!)
+                }
+                "printorder-priority" ->{
+                    Logger.d("printorder-priority","Remote order priority request ${printerMessage["key"]}")
+                    remotePriorityOrder(printerMessage["key"]!!)
+                }
+            }
         }
+    }
+
+    private fun broadcastDatasetChange(){
+        intent?.putExtra("message",OrderWebSocket.REFRESH_DATASET_MESSAGE)
+        context.sendBroadcast(intent)
     }
 
     private fun fetchPrinterOrder(orderKey: String) {
@@ -124,7 +166,15 @@ class OrderWebSocket(private val credentials: DeviceCredentials, private val ada
         val printJob = Klaxon().parse<Map<String, Any>>(responseBody)
         val key = printJob!!["key"] as String
         val payload = printJob["payload"] as String
+        println("passed payload")
         val order = Klaxon().parse<Order>(payload)
+        if(printJob["orderReadySms"] != null){
+            order!!.orderReadySms = printJob["orderReadySms"].toString()
+        }
+        if(printJob["orderReadySmsCount"] != null){
+            order!!.smsCount = printJob["orderReadySmsCount"] as Int?
+        }
+        println("passed order")
 
 
         if(credentials.printerNum != "" && (com.amorphik.focuskitchen.printerId == null || com.amorphik.focuskitchen.printerId == "")){
@@ -170,7 +220,7 @@ class OrderWebSocket(private val credentials: DeviceCredentials, private val ada
 
             putPayload = """{
                                 "key": "$key",
-                                "status": "complete"
+                                "status": "displayed"
                             }"""
             Networking.putData(url, headerName, headerBody, putPayload) { _,_,_ -> }
 
@@ -179,7 +229,7 @@ class OrderWebSocket(private val credentials: DeviceCredentials, private val ada
             putPayload = """{
                                 "key": "$key",
                                 "status": "error",
-                                "error": "Order retrieved was unable to be parsed"
+                                "error": "parsing-error"
                             }"""
 
             CoroutineScope(Dispatchers.IO).launch {
@@ -206,8 +256,9 @@ class OrderWebSocket(private val credentials: DeviceCredentials, private val ada
     private fun addOrderToAdapter(order: Order) {
         try{
             OrdersModel.addOrder(order)
-            playSound()
+
             saveOrdersToDevice()
+            playSound()
         }catch(e: Exception){
             CoroutineScope(Dispatchers.IO).launch {
                 withContext(Dispatchers.Main) {
@@ -229,14 +280,50 @@ class OrderWebSocket(private val credentials: DeviceCredentials, private val ada
         }
 
     }
+
+    private fun remoteBumpOrder(printOrderKey: String, checkId: String, bumpFromStationName: String){
+        if(adapter.dataSet.any{i -> i.orderKey == printOrderKey}){
+            Thread.sleep(1500)
+            intent!!.putExtra("source","bumpOrder")
+            intent!!.putExtra("printOrderKey",printOrderKey)
+            context.sendBroadcast(intent)
+        } else{
+            Logger.d("printOrder-message","No orders matching printOrderKey ${printOrderKey}")
+        }
+    }
+
+    private fun remoteCompleteOrder(printOrderKey: String){
+        if(adapter.dataSet.any{i -> i.orderKey == printOrderKey}){
+
+            intent!!.putExtra("source","completeOrder")
+            intent!!.putExtra("printOrderKey",printOrderKey)
+            context.sendBroadcast(intent)
+
+        } else{
+            Logger.d("printorder-complete","No orders matching printOrderKey ${printOrderKey}")
+        }
+    }
+
+    private fun remotePriorityOrder(printOrderKey: String){
+        if(adapter.dataSet.any{i->i.orderKey == printOrderKey}){
+            intent!!.putExtra("source","priorityOrder")
+            intent!!.putExtra("printOrderKey",printOrderKey)
+            context.sendBroadcast(intent)
+        } else{
+            Logger.d("printorder-priority","No orders matching printOrderKey ${printOrderKey}")
+        }
+    }
     private fun saveOrdersToDevice() {
+
         Thread {
-            val editor = credentials.prefs.edit()
+            val editor = credentials.sharedPreferences.edit()
             val ordersAsJson = Klaxon().toJsonString(OrdersModel.orders)
+
             editor.putString(credentials.PREFS_ORDERS_KEY, ordersAsJson)
             editor.apply()
         }.run()
     }
+
     private fun playSound() {
         mediaPlayer.start()
     }
@@ -272,5 +359,11 @@ class OrderWebSocket(private val credentials: DeviceCredentials, private val ada
         handler.postDelayed({
             steveImageView.animate().alpha(0f).setDuration(1000L).start()
         }, 16000)
+    }
+
+    companion object{
+        val BROADCAST_ACTION = "com.amorphik.focuskitchen"
+        val REFRESH_DATASET_MESSAGE = "refreshDataset"
+        var intent: Intent? = null
     }
 }

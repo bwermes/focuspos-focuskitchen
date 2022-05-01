@@ -3,6 +3,8 @@
     <string name="venue_id">Venue ID</string>
     <string name="license_count">Claim an available license?</string>
     <string name="close">Close</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
     <string name="checks_view_all">All Checks</string>
     <string name="checks_view_open">Open Checks</string>
     <string name="checks_view_count">Viewing %1$s of %2$s checks (%3$s open)</string>
@@ -10,6 +12,7 @@
     <string name="table_name">Table %1$s</string>
     <string name="guest_count">Guests %1$s</string>
     <string name="owner_name">Owner %1$s</string>
+    <string name="sms_count_sent">(%1$s)</string>
     <string name="value">%1$s</string>
     <string name="check_seat_count">%1$s of %2$s</string>
     <string name="api_license_id">2a4f52e7-ac71-4c0e-b0bc-d64d76ae2939</string>
@@ -17,4 +20,23 @@
     <string name="api_url_dev">https://dev.focuslink.focuspos.com/</string>
     <string name="api_url_prod">https://focuslink.focuspos.com/</string>
     <string name="main_connection_status">Connection down: %1$s</string>
+    <string name="item_control_header_title">Menu Items</string>
+    <string name="item_control_back">Back</string>
+    <string name="item_control_search_field">Search for item...</string>
+    <string name="item_control_header_item_name">Item</string>
+    <string name="item_control_header_item_count">Count On Hand</string>
+    <string name="item_control_header_item_stock_status">Out of Stock</string>
+    <string name="item_control_header_no_items_found">no items found...</string>
+    <string name="registration_license_select">Please select a license:</string>
+    <string name="registration_license_confirmation">Set this device as %1$s with printer ID %2$s?</string>
+    <string name="item_count_dialog_count_input_hint">new count...</string>
+    <string name="item_count_dialog_count_current_count_text">status</string>
+    <string name="item_edit_dialog_currently_out_of_stock">out of stock</string>
+    <string name="item_edit_dialog_currently_in_stock">in stock</string>
+    <string name="item_edit_dialog_mark_out_of_stock">Set "out of stock"</string>
+    <string name="item_edit_dialog_mark_in_stock">Set "in stock"</string>
+    <string name="item_chart_sales_by_day">Sales by Day</string>
+    <string name="item_chart_sales_by_hour">Today by Hour</string>
+    <string name="order_sms_dialog_header">Send Order Ready SMS to %1$s?</string>
+    <string name="order_sms_disclaimer">Order Ready SMS charge may apply.</string>
 </resources>

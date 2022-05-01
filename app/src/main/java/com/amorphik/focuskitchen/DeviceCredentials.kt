@@ -3,10 +3,11 @@ package com.amorphik.focuskitchen
 import android.content.Context
 import android.content.SharedPreferences
 import android.provider.Settings
+import android.util.Log
 import java.net.NetworkInterface
 import java.util.*
 
-class DeviceCredentials (val prefs: SharedPreferences, val context: Context) {
+class DeviceCredentials (val sharedPreferences: SharedPreferences, val context: Context) {
     // Device specific info
     var macAddress = ""
     var ipAddress = ""
@@ -20,6 +21,10 @@ class DeviceCredentials (val prefs: SharedPreferences, val context: Context) {
     var baseWsUrl = "https://ws.focuslink.focuspos.com/"
     var printerNum = ""
     var urgentTime = Int.MAX_VALUE
+    var bumpToPrinterEnabled: Boolean = false
+    var sms = false
+    var smsOnBump = false
+    var smsOnBumpPrompt = true
 
     // Constant keys used to access device saved information
     val PREFS_LICENSE_KEY = "licenseKey"
@@ -35,12 +40,12 @@ class DeviceCredentials (val prefs: SharedPreferences, val context: Context) {
     init {
         ipAddress = gatherIpAddress()
 
-        venueKey = prefs.getString(PREFS_VENUE_KEY, "")!!
-        deviceName = prefs.getString(PREFS_DEVICE_NAME, "")!!
-        licenseKey = prefs.getString(PREFS_LICENSE_KEY, "")!!
-        licenseSecret = prefs.getString(PREFS_LICENSE_SECRET, "")!!
-        mode = prefs.getString(PREFS_MODE_KEY, "prod")!!
-        macAddress = prefs.getString(PREFS_MAC_ADDR, generateFauxMac())!!
+        venueKey = sharedPreferences.getString(PREFS_VENUE_KEY, "")!!
+        deviceName = sharedPreferences.getString(PREFS_DEVICE_NAME, "")!!
+        licenseKey = sharedPreferences.getString(PREFS_LICENSE_KEY, "")!!
+        licenseSecret = sharedPreferences.getString(PREFS_LICENSE_SECRET, "")!!
+        mode = sharedPreferences.getString(PREFS_MODE_KEY, "prod")!!
+        macAddress = sharedPreferences.getString(PREFS_MAC_ADDR, generateFauxMac())!!
     }
 
     fun generateFauxMac() : String {
@@ -83,6 +88,7 @@ class DeviceCredentials (val prefs: SharedPreferences, val context: Context) {
     fun generateDeviceLicenseHeader() : String {
         // Header value used to access post registration endpoints
         val signature = AuthGenerator.generateHash("$licenseKey:$venueKey:$macAddress", licenseSecret)
+        prefs.authToken = "$licenseKey:$signature"
 
         return "hmac $licenseKey:$signature"
     }

@@ -117,7 +117,7 @@ class RecallAdapter : RecyclerView.Adapter<OrderViewHolder>() {
         notifyDataSetChanged()
 
         Thread {
-            val editor = credentials.prefs.edit()
+            val editor = credentials.sharedPreferences.edit()
             val ordersAsJson = Klaxon().toJsonString(OrdersModel.orders)
             editor.putString(credentials.PREFS_ORDERS_KEY, ordersAsJson)
             editor.apply()
