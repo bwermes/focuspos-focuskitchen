@@ -530,12 +530,12 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
             //itemText.textSize = DeviceDetails.defaultTextSize
             if (dataSet[position].isModifier) {
                 itemText.setTextColor(Color.parseColor(prefs.licenseFeatures!!.kitchenModifierFontColor))
-                itemText.setTextSize(prefs.licenseFeatures!!.kitchenModifierFontSize.toFloat())
-                Logger.d("customUi","setting modifier fontSize ${prefs.licenseFeatures!!.kitchenModifierFontSize.toFloat()}")
+                itemText.setTextSize(prefs.licenseFeatures!!.kitchenModifierFontSize!!.toFloat())
+                Logger.d("customUi","setting modifier fontSize ${prefs.licenseFeatures!!.kitchenModifierFontSize!!.toFloat()}")
             } else {
                 itemText.setTextColor(Color.parseColor(prefs.licenseFeatures!!.kitchenItemFontColor))
-                itemText.setTextSize(prefs.licenseFeatures!!.kitchenItemFontSize.toFloat())
-                Logger.d("customUi","setting item fontSize ${prefs.licenseFeatures!!.kitchenItemFontSize.toFloat()}")
+                itemText.setTextSize(prefs.licenseFeatures!!.kitchenItemFontSize!!.toFloat())
+                Logger.d("customUi","setting item fontSize ${prefs.licenseFeatures!!.kitchenItemFontSize!!.toFloat()}")
             }
 
             if (dataSet[position].voided) {
@@ -616,10 +616,10 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
 //            holder.view.header_cell_time_text.textSize = DeviceDetails.defaultTextSize
 //            holder.view.header_cell_table_name_text.textSize = DeviceDetails.defaultTextSize
 //            holder.view.header_cell_order_type_text.textSize = DeviceDetails.defaultTextSize
-            holder.view.header_cell_server_text.textSize = prefs.licenseFeatures!!.kitchenHeaderFontSize.toFloat()
-            holder.view.header_cell_time_text.textSize = prefs.licenseFeatures!!.kitchenHeaderFontSize.toFloat()
-            holder.view.header_cell_table_name_text.textSize = prefs.licenseFeatures!!.kitchenHeaderFontSize.toFloat()
-            holder.view.header_cell_order_type_text.textSize = prefs.licenseFeatures!!.kitchenHeaderFontSize.toFloat()
+            holder.view.header_cell_server_text.textSize = prefs.licenseFeatures!!.kitchenHeaderFontSize!!.toFloat()
+            holder.view.header_cell_time_text.textSize = prefs.licenseFeatures!!.kitchenHeaderFontSize!!.toFloat()
+            holder.view.header_cell_table_name_text.textSize = prefs.licenseFeatures!!.kitchenHeaderFontSize!!.toFloat()
+            holder.view.header_cell_order_type_text.textSize = prefs.licenseFeatures!!.kitchenHeaderFontSize!!.toFloat()
 
         }
     }

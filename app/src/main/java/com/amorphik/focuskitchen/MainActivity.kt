@@ -978,7 +978,7 @@ class MainActivity : AppCompatActivity() {
     // Assign device color pallet based on license features
     private fun assignFeatures(features: LicenseFeatures){
         prefs.licenseFeatures = features;
-        if(features.bumpToPrinterIdList != null && features.bumpToPrinterIdList.size > 0){
+        if(features.bumpToPrinterIdList != null && features.bumpToPrinterIdList!!.size > 0){
             credentials.bumpToPrinterEnabled = true
         }
 
