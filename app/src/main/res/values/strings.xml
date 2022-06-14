@@ -39,4 +39,5 @@
     <string name="item_chart_sales_by_hour">Today by Hour</string>
     <string name="order_sms_dialog_header">Send Order Ready SMS to %1$s?</string>
     <string name="order_sms_disclaimer">Order Ready SMS charge may apply.</string>
+    <string name="activity_all_day_count_title">All Day Counts</string>
 </resources>

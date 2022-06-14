@@ -19,6 +19,7 @@ class OrdersModel {
             val printOrderSessionKey = order.printOrderSessionKey
             val orderReadySms = order.orderReadySms
             val orderReadySmsCount = order.smsCount
+            val orderHeaderColor = order.orderHeaderColor
             var delayTime = 0
             if (order.delayTime > 0) {
                 delayTime = order.delayTime + 1
@@ -40,7 +41,9 @@ class OrdersModel {
                 voided = false,
                 quantity = 0,
                 printOrderSessionKey = printOrderSessionKey,
-                orderReadySms = orderReadySms)
+                orderReadySms = orderReadySms,
+                orderHeaderColor = orderHeaderColor
+            )
 
             headerItem.orderKey = orderKey
             headerItem.delayTime = delayTime

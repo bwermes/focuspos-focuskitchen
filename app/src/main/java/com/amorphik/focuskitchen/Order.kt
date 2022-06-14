@@ -21,7 +21,11 @@ class Order (val printerId: Int,
              val customerName: String,
              val items: Array<OrderItem>,
              @SerializedName("orderReadySmsCount") var smsCount: Int? = 0,
-            @SerializedName("orderReadySms") var orderReadySms: String? = null) {
+            @SerializedName("orderReadySms") var orderReadySms: String? = null,
+             @SerializedName("orderHeaderColor") var orderHeaderColor: String? = null
+)
+
+{
 
     var bumpTime : String = "0:00:00"
     var key: String = ""

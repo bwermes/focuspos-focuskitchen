@@ -9,13 +9,15 @@
         <entry key="app/src/main/res/drawable/ripple_effect_blue_to_red.xml" value="0.253125" />
         <entry key="app/src/main/res/drawable/ripple_effect_grey_to_red.xml" value="0.253125" />
         <entry key="app/src/main/res/drawable/ripple_effect_grey_to_yellow.xml" value="0.253125" />
+        <entry key="app/src/main/res/layout/activity_all_day_count.xml" value="0.236328125" />
         <entry key="app/src/main/res/layout/activity_check_view.xml" value="0.23214285714285715" />
         <entry key="app/src/main/res/layout/activity_item_control.xml" value="0.14862750307360398" />
         <entry key="app/src/main/res/layout/activity_item_edit.xml" value="0.23460591133004927" />
-        <entry key="app/src/main/res/layout/activity_main.xml" value="0.8636734702885563" />
+        <entry key="app/src/main/res/layout/activity_main.xml" value="0.28935884525008393" />
         <entry key="app/src/main/res/layout/dialog_item_count.xml" value="0.4427751744389392" />
         <entry key="app/src/main/res/layout/header_cell.xml" value="0.5190666789473923" />
         <entry key="app/src/main/res/layout/info_dialog.xml" value="0.23984375" />
+        <entry key="app/src/main/res/layout/item_all_day_count_item.xml" value="0.236328125" />
         <entry key="app/src/main/res/layout/item_check.xml" value="0.20703125" />
         <entry key="app/src/main/res/layout/item_edit_chart.xml" value="0.2269088669950739" />
         <entry key="app/src/main/res/layout/order_cell.xml" value="0.23214285714285715" />

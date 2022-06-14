@@ -17,7 +17,8 @@ class OrderAdapterDataItem (val isModifier: Boolean,
                             var isComplete: Boolean = false,
                             var isPriority: Boolean = false,
                             var smsCount: Int = 0,
-                            var orderReadySms: String? = null
+                            var orderReadySms: String? = null,
+                            var orderHeaderColor: String? = null
                             ) {
 
     var isTagged = false

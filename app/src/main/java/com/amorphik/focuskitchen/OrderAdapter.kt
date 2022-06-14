@@ -7,6 +7,7 @@ import android.content.res.Resources
 import android.graphics.Color
 import android.graphics.Paint
 import android.os.Handler
+import android.os.Looper
 import android.text.Spannable
 import android.text.Spanned
 import android.text.style.StrikethroughSpan
@@ -31,7 +32,11 @@ import kotlinx.android.synthetic.main.order_cell.view.*
 import java.util.*
 import kotlin.concurrent.thread
 import kotlinx.coroutines.*
+import nl.dionsegijn.konfetti.core.Party
+import nl.dionsegijn.konfetti.core.Position
+import nl.dionsegijn.konfetti.core.emitter.Emitter
 import java.security.AccessController.getContext
+import java.util.concurrent.TimeUnit
 
 class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
     val dataSet = OrdersModel.orders
@@ -91,16 +96,15 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
         }
 
         if (viewType != ORDER_VIEW_TYPE) {
-            viewHolder.view.setBackgroundColor(Color.parseColor(prefs.licenseFeatures!!.kitchenHeaderBackgroundColor))
+            viewHolder.view.setBackgroundColor(Color.parseColor(if(prefs.licenseFeatures != null) prefs.licenseFeatures?.kitchenHeaderBackgroundColor else "#56707D"))
 
             viewHolder.view.header_overlay.setOnClickListener {
+                Logger.d("smsState","sms state = ${credentials.sms}")
                 val dpOfBumpButton = 70
                 val dpOfPriorityButton = 70
                 val dpOfPrinterButton =if(credentials.bumpToPrinterEnabled) 70 else 0
                 var dpOfSmsButton = if(credentials.sms && viewHolder.view.sms_button.visibility == View.VISIBLE) 70 else 0
-
-
-
+                Logger.d("smsState","dpOfSmsButton = ${dpOfSmsButton}")
                 var dpToPx = (dpOfBumpButton + dpOfPriorityButton + dpOfPrinterButton + dpOfSmsButton) * Resources.getSystem().displayMetrics.density
 
                 if (viewHolder.view.header_overlay.x == 0f) {
@@ -156,7 +160,7 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
 
         if(dataSet[position].isHeader){
             dataSet[position].lastPosition = position
-
+            Logger.d("smsState","order SMS = ${dataSet[position].orderReadySms}")
 
             if(dataSet[position].orderReadySms != null &&  dataSet[position].orderReadySms != ""){
 
@@ -168,7 +172,6 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
                 holder.view.sms_imageView.visibility = View.GONE
 
             }
-
         }
 
         constructOrderItem(holder, position)
@@ -236,7 +239,7 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
         val recyclerView = if (this.recyclerView == null) return else this.recyclerView!!
 
         // Highlight the header
-        if (selectedPosition == cells.min()) {
+        if (selectedPosition == cells.minOrNull()) {
             recyclerView[cells[0]].header_cell_bottom_border.setBackgroundColor(Color.YELLOW)
         }
         recyclerView[cells[0]].header_cell_top_border.setBackgroundColor(Color.YELLOW)
@@ -245,21 +248,21 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
 
 
         // Highlights selected cell
-        if (selectedPosition != cells.min()) {
-            recyclerView[selectedPosition].order_cell_bottom_border.setBackgroundColor(Color.YELLOW)
-            recyclerView[selectedPosition].order_cell_top_border.setBackgroundColor(Color.YELLOW)
-            recyclerView[selectedPosition].order_cell_left_border.setBackgroundColor(Color.YELLOW)
-            recyclerView[selectedPosition].order_cell_right_border.setBackgroundColor(Color.YELLOW)
+        if (selectedPosition != cells.minOrNull()) {
+//            recyclerView[selectedPosition].order_cell_bottom_border.setBackgroundColor(Color.YELLOW)
+//            recyclerView[selectedPosition].order_cell_top_border.setBackgroundColor(Color.YELLOW)
+//            recyclerView[selectedPosition].order_cell_left_border.setBackgroundColor(Color.YELLOW)
+//            recyclerView[selectedPosition].order_cell_right_border.setBackgroundColor(Color.YELLOW)
         }
 
         // Highlights other order items
         for (i in 1.until(cells.size)) {
             if (cells[i] < recyclerView.size) {
-                recyclerView[cells[i]].order_cell_left_border.setBackgroundColor(Color.YELLOW)
-                recyclerView[cells[i]].order_cell_right_border.setBackgroundColor(Color.YELLOW)
+//                recyclerView[cells[i]].order_cell_left_border.setBackgroundColor(Color.YELLOW)
+//                recyclerView[cells[i]].order_cell_right_border.setBackgroundColor(Color.YELLOW)
 
                 if (i == cells.size - 1) {
-                    recyclerView[cells[i]].order_cell_bottom_border.setBackgroundColor(Color.YELLOW)
+//                    recyclerView[cells[i]].order_cell_bottom_border.setBackgroundColor(Color.YELLOW)
                 }
             }
         }
@@ -269,48 +272,61 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
 
         for (i in 0.until(recyclerView.size)) {
             // Highlight the header
-            if (recyclerView[i].header_cell_bottom_border != null) {
-                recyclerView[i].header_cell_bottom_border.setBackgroundColor(
-                    Color.TRANSPARENT
-                )
-                recyclerView[i].header_cell_top_border.setBackgroundColor(
-                    ContextCompat.getColor(
-                        recyclerView.context,
-                        R.color.colorFocusLinkSecondaryGray
-                    )
-                )
-                recyclerView[i].header_cell_left_border.setBackgroundColor(
-                    ContextCompat.getColor(
-                        recyclerView.context,
-                        R.color.colorFocusLinkSecondaryGray
-                    )
-                )
-                recyclerView[i].header_cell_right_border.setBackgroundColor(
-                    ContextCompat.getColor(
-                        recyclerView.context,
-                        R.color.colorFocusLinkSecondaryGray
-                    )
-                )
-            } else {
-                recyclerView[i].order_cell_bottom_border.setBackgroundColor(
-                    Color.TRANSPARENT
-                )
-                recyclerView[i].order_cell_top_border.setBackgroundColor(
-                    Color.TRANSPARENT
-                )
-                recyclerView[i].order_cell_left_border.setBackgroundColor(
-                    ContextCompat.getColor(recyclerView.context, R.color.colorFocusLinkSecondaryGray)
-                )
-                recyclerView[i].order_cell_right_border.setBackgroundColor(
-                    ContextCompat.getColor(recyclerView.context, R.color.colorFocusLinkSecondaryGray)
-                )
 
-                if (i == dataSet.size - 1 || dataSet[i + 1].isHeader) {
-                    recyclerView[i].order_cell_bottom_border.setBackgroundColor(
-                        ContextCompat.getColor(recyclerView.context, R.color.colorFocusLinkSecondaryGray)
-                    )
-                }
-            }
+            recyclerView[i].order_cell_bottom_border.setBackgroundColor(
+                Color.TRANSPARENT
+            )
+            recyclerView[i].order_cell_top_border.setBackgroundColor(
+                Color.TRANSPARENT
+            )
+            recyclerView[i].order_cell_left_border.setBackgroundColor(
+                Color.TRANSPARENT
+            )
+            recyclerView[i].order_cell_right_border.setBackgroundColor(
+                Color.TRANSPARENT
+            )
+//            if (recyclerView[i].header_cell_bottom_border != null) {
+//                recyclerView[i].header_cell_bottom_border.setBackgroundColor(
+//                    Color.TRANSPARENT
+//                )
+//                recyclerView[i].header_cell_top_border.setBackgroundColor(
+//                    ContextCompat.getColor(
+//                        recyclerView.context,
+//                        R.color.colorFocusLinkSecondaryGray
+//                    )
+//                )
+//                recyclerView[i].header_cell_left_border.setBackgroundColor(
+//                    ContextCompat.getColor(
+//                        recyclerView.context,
+//                        R.color.colorFocusLinkSecondaryGray
+//                    )
+//                )
+//                recyclerView[i].header_cell_right_border.setBackgroundColor(
+//                    ContextCompat.getColor(
+//                        recyclerView.context,
+//                        R.color.colorFocusLinkSecondaryGray
+//                    )
+//                )
+//            } else {
+//                recyclerView[i].order_cell_bottom_border.setBackgroundColor(
+//                    Color.TRANSPARENT
+//                )
+//                recyclerView[i].order_cell_top_border.setBackgroundColor(
+//                    Color.TRANSPARENT
+//                )
+//                recyclerView[i].order_cell_left_border.setBackgroundColor(
+//                    ContextCompat.getColor(recyclerView.context, R.color.colorFocusLinkSecondaryGray)
+//                )
+//                recyclerView[i].order_cell_right_border.setBackgroundColor(
+//                    ContextCompat.getColor(recyclerView.context, R.color.colorFocusLinkSecondaryGray)
+//                )
+//
+//                if (i == dataSet.size - 1 || dataSet[i + 1].isHeader) {
+//                    recyclerView[i].order_cell_bottom_border.setBackgroundColor(
+//                        ContextCompat.getColor(recyclerView.context, R.color.colorFocusLinkSecondaryGray)
+//                    )
+//                }
+//            }
         }
     }
 
@@ -319,8 +335,6 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
         var orderKey: String? = null
 
         try{
-
-
             val toRemove = selectIndices(position)
             val bumpedItems = mutableListOf<OrderAdapterDataItem>()
             for (item in toRemove.reversed()) {
@@ -395,7 +409,7 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
 
                         dataSet.removeAt(itemPosition)
 
-                        if (itemPosition == toRemove.min()!!) {
+                        if (itemPosition == toRemove.minOrNull()!!) {
                             Thread {
                                 updateSavedOrders()
                             }.start()
@@ -408,6 +422,27 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
 
                     //Update the recyclerView
                     notifyDataSetChanged()
+                }
+            }
+
+            Logger.d("konfetti","item count = ${itemCount}")
+
+            bumpedItems.forEach { i ->
+                try{
+                    i.itemName?.let { mainActivity.allDayCountRemoveItem(it, i.quantity.toFloat()) }
+                }catch(ex: java.lang.Exception){
+                    Logger.e("allDay","Remove error: ${ex.message}", false)
+                }
+            }
+
+            if(itemCount <= 2){
+                mainActivity.konfettiView.start(
+                    session.party
+                )
+                Logger.d("konfetti","after konfetti")
+            } else{
+                dataSet.forEach { i ->
+                    Logger.d("konfetti","${i.orderKey} ${i.isHeader} ${i.checkNum}")
                 }
             }
         }
@@ -556,12 +591,13 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
 
             // Item is the last item of the order
             if (dataSet[position].isLastItemInOrder) {
-                    holder.view.order_cell_bottom_border.setBackgroundColor(
-                        ContextCompat.getColor(
-                            holder.view.context,
-                            R.color.colorFocusLinkSecondaryGray
-                        )
-                    )
+//                    holder.view.order_cell_bottom_border.setBackgroundColor(
+//                        ContextCompat.getColor(
+//                            holder.view.context,
+//                            R.color.colorFocusLinkSecondaryGray
+//                        )
+//                    )
+                holder.view.order_cell_bottom_border.setBackgroundColor(Color.TRANSPARENT)
                 } else {
                     holder.view.order_cell_bottom_border.setBackgroundColor(Color.TRANSPARENT)
                 }
@@ -571,14 +607,20 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
                 holder.view.header_layout.setBackgroundColor(Color.MAGENTA)
             } else {
                 Logger.d("printorder-complete","constructOrderItem ${position}")
+
                 if (dataSet[position].minutesInSystem < credentials.urgentTime) {
-                    Logger.d("printorder-complete","order is normal")
-//                    holder.view.header_overlay.setBackgroundColor(Color.rgb(0, 153, 204))
-//                    holder.view.header_layout.setBackgroundColor(Color.rgb(0, 153, 204))
-                    holder.view.header_overlay.setBackgroundColor(Color.parseColor(prefs.licenseFeatures!!.kitchenHeaderBackgroundColor))
-                    holder.view.header_layout.setBackgroundColor(Color.parseColor(prefs.licenseFeatures!!.kitchenHeaderBackgroundColor))
+                    if(dataSet[position].orderHeaderColor != null){
+                        holder.view.header_overlay.setBackgroundColor(Color.parseColor(dataSet[position].orderHeaderColor))
+                        holder.view.header_layout.setBackgroundColor(Color.parseColor(dataSet[position].orderHeaderColor))
+                    }else{
+                        Logger.d("printorder-complete","order is normal")
+                        holder.view.header_overlay.setBackgroundColor(Color.parseColor(prefs.licenseFeatures!!.kitchenHeaderBackgroundColor))
+                        holder.view.header_layout.setBackgroundColor(Color.parseColor(prefs.licenseFeatures!!.kitchenHeaderBackgroundColor))
+                    }
+
 
                 } else {
+
                     Logger.d("printorder-complete","order is urgent")
                     holder.view.header_overlay.setBackgroundColor(Color.parseColor(prefs.licenseFeatures!!.kitchenUrgentHeaderBackgroundColor))
                     holder.view.header_layout.setBackgroundColor(Color.parseColor(prefs.licenseFeatures!!.kitchenUrgentHeaderBackgroundColor))

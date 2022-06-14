@@ -21,12 +21,18 @@ import androidx.core.content.ContextCompat.getSystemService
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import android.view.Gravity
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import nl.dionsegijn.konfetti.compose.KonfettiView
+import nl.dionsegijn.konfetti.core.Party
+import nl.dionsegijn.konfetti.core.emitter.Emitter
+import java.util.concurrent.TimeUnit
 
 
 object Utility {
@@ -71,6 +77,8 @@ object Utility {
         credentials.macAddress = credentials.generateFauxMac()
         credentials.mode = "prod"
     }
+
+
 
     public fun osNetworkCheck(context: Context): Boolean {
         val connectivityManager =

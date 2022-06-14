@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "artifactType": {
+    "type": "APK",
+    "kind": "Directory"
+  },
+  "applicationId": "com.amorphik.focuskitchen",
+  "variantName": "processDebugResources",
+  "elements": [
+    {
+      "type": "SINGLE",
+      "filters": [],
+      "versionCode": 220614,
+      "versionName": "1.16",
+      "outputFile": "Focus Kitchen-1.16.apk"
+    }
+  ]
+}

@@ -8,6 +8,7 @@ import android.graphics.Color
 import android.graphics.Rect
 import android.media.MediaPlayer
 import android.os.*
+import android.transition.TransitionManager
 import androidx.appcompat.app.AppCompatActivity
 import android.util.DisplayMetrics
 import android.util.Log
@@ -18,22 +19,30 @@ import android.view.animation.AccelerateInterpolator
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.constraintlayout.widget.ConstraintSet
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.amorphik.focuskitchen.allDayCount.AllDayCountAdapter
 import com.amorphik.focuskitchen.itemControl.ActivityItemView
+import com.beust.klaxon.Json
 import com.beust.klaxon.Klaxon
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexboxLayoutManager
 import com.google.gson.Gson
+import kotlinx.android.synthetic.main.activity_all_day_count.*
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import nl.dionsegijn.konfetti.xml.KonfettiView
+
+
 import okhttp3.*
 import org.json.JSONArray
 import java.io.Serializable
+import java.lang.Error
 import java.lang.ref.WeakReference
 import java.text.SimpleDateFormat
 import java.util.*
@@ -49,6 +58,7 @@ class MainActivity : AppCompatActivity() {
     lateinit var credentials : DeviceCredentials
     lateinit var orderAdapter: OrderAdapter
     lateinit var recallAdapter: RecallAdapter
+    lateinit var allDayCountAdapter: AllDayCountAdapter
     lateinit var websocketClient: OkHttpClient
     lateinit var websocket: WebSocket
     lateinit var websocketListener: OrderWebSocket
@@ -57,6 +67,8 @@ class MainActivity : AppCompatActivity() {
     var connectionDownMinutes: Int = 0
     var menuIsAnimating = false
     private lateinit var res: Resources
+    lateinit var konfettiView: KonfettiView
+    var displayAllDayCount: Boolean = false
 
 
     lateinit var mainHandler: Handler
@@ -87,6 +99,8 @@ class MainActivity : AppCompatActivity() {
 
         managerModeButton = this.findViewById<ImageView>(R.id.manager_mode_access_button)
         managerModeButton.visibility = View.GONE
+
+        konfettiView = this.findViewById<KonfettiView>(R.id.viewKonfetti)
 
         // Init device info
         setDeviceDetails()
@@ -119,6 +133,14 @@ class MainActivity : AppCompatActivity() {
                 2 -> recallAdapter.moveToNextOrder()
             }
         })
+
+        val allDayButton = this.findViewById<View>(R.id.main_activity_button_all_day)
+        allDayButton.setOnClickListener { it ->
+            buildMainUi(!displayAllDayCount)
+        }
+
+
+
 
         // Will run after layout has happened
         // Need to do this for existing orders to load from saved and display properly
@@ -212,6 +234,45 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    fun allDayCountAddItem(itemName: String, count: Float){
+        Logger.d("allDay","addItemToAllDayCount")
+        try{
+            val existingItem = session.allDayCountRecords.find{ i-> i.menuItemName == itemName.trim()}
+            if(existingItem != null){
+                Logger.d("allDay","existing item found. changing count")
+                existingItem.count += count
+                existingItem.displayCount = existingItem.count.toString().replace(".0","")
+            } else{
+                Logger.d("allDay","add new item to session.allDayCountRecords")
+                session.allDayCountRecords.add(AllDayCountRecord(itemName.trim(), count, count.toString().replace(".0","")))
+            }
+
+            session.allDayCountRecords.sortBy { it.menuItemName }
+            allDayCountAdapter.notifyDataSetChanged()
+        }catch(ex: java.lang.Exception){
+
+        }
+
+
+    }
+
+    fun allDayCountRemoveItem(itemName: String, count: Float){
+        Logger.d("allDay","Remove ${itemName}")
+        val idx = session.allDayCountRecords.indexOfFirst{ i -> i.menuItemName == itemName.trim()}
+        Logger.d("allDay","idx = $idx")
+        if(idx != -1){
+            if(session.allDayCountRecords[idx].count > count){
+                Logger.d("allDay","Reducing count")
+                session.allDayCountRecords[idx].count = session.allDayCountRecords[idx].count - count
+                session.allDayCountRecords[idx].displayCount = session.allDayCountRecords[idx].count.toString().replace(".0","")
+            } else{
+                Logger.d("allDay","Removing item")
+                session.allDayCountRecords.removeAt(idx)
+            }
+        }
+        allDayCountAdapter.notifyDataSetChanged()
+    }
+
     private val broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             val message = intent.getStringExtra("message")
@@ -227,6 +288,31 @@ class MainActivity : AppCompatActivity() {
             }
 
         }
+    }
+
+    private fun buildMainUi(showAllDayCount: Boolean){
+        val mainActivityView = this.findViewById<ConstraintLayout>(R.id.main_view_body)
+        val allDayCountView = this.findViewById<ConstraintLayout>(R.id.main_all_day_count_view)
+        var constraintSet = ConstraintSet();
+
+        constraintSet.clone(mainActivityView)
+        allDayCountView.visibility = View.VISIBLE
+
+
+        if(showAllDayCount){
+            Logger.d("allDay","showing all day count")
+
+            constraintSet.connect(R.id.main_order_recycler_constraint_holder, ConstraintSet.END, R.id.main_guide_75, ConstraintSet.END)
+        }else{
+            Logger.d("allDay","hiding all day count")
+
+            constraintSet.connect(R.id.main_order_recycler_constraint_holder, ConstraintSet.END, R.id.main_guide_100, ConstraintSet.END)
+        }
+        TransitionManager.beginDelayedTransition(mainActivityView)
+        constraintSet.applyTo(mainActivityView)
+        Logger.d("allDay","after apply")
+
+        displayAllDayCount = !displayAllDayCount
     }
 
     private fun completeOrderOnAdapter(printOrderKey: String){
@@ -412,8 +498,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
-
     // Begin websocket
     private fun runWebsocket() {
         websocket_status_imageView.setOnClickListener {
@@ -421,7 +505,7 @@ class MainActivity : AppCompatActivity() {
             startWebSocket(credentials, websocketListener)
         }
 
-        websocketListener = OrderWebSocket(credentials, orderAdapter, this)
+        websocketListener = OrderWebSocket(credentials, orderAdapter, this, this)
         val websocketReconnection = object: Runnable {
             override fun run() {
                 Handler().postDelayed(this, 5000)
@@ -643,9 +727,11 @@ class MainActivity : AppCompatActivity() {
     private fun setupAdapters() {
         orderAdapter = createOrderAdapter()
         recallAdapter = createRecallAdapter()
+        allDayCountAdapter = createAllDayAdapter()
         orderAdapter.recallAdapter = recallAdapter
         recallAdapter.orderAdapter = orderAdapter
     }
+
     private fun createOrderAdapter() : OrderAdapter {
         val adapter = OrderAdapter()
         adapter.setHasStableIds(true)
@@ -665,6 +751,7 @@ class MainActivity : AppCompatActivity() {
 
         return adapter
     }
+
     private fun createRecallAdapter() : RecallAdapter {
         val adapter = RecallAdapter()
         adapter.setHasStableIds(true)
@@ -692,6 +779,15 @@ class MainActivity : AppCompatActivity() {
         return adapter
     }
 
+    private fun createAllDayAdapter(): AllDayCountAdapter{
+        val adapter = AllDayCountAdapter(session.allDayCountRecords)
+        all_day_recycler.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
+        all_day_recycler.adapter = adapter
+        return adapter
+    }
+
+
+
     // Import existing orders saved in the system. Will happen at app relaunch
     private fun addExistingOrders() {
         if (credentials.sharedPreferences.getString(credentials.PREFS_ORDERS_KEY, null) != null) {
@@ -706,6 +802,11 @@ class MainActivity : AppCompatActivity() {
             for (order in savedOrders) {
                 OrdersModel.orders.add(order)
                 orderAdapter.notifyDataSetChanged()
+
+                if(!order.isHeader && order.itemLevel == 0){
+                    Logger.d("allDay","existing item to add ${order.orderKey}")
+                    order.itemName?.let { allDayCountAddItem(it, order.quantity.toFloat()) }
+                }
             }
         }
         if (credentials.sharedPreferences.getString(credentials.PREFS_DELAYED_KEY, null) != null) {
@@ -917,7 +1018,27 @@ class MainActivity : AppCompatActivity() {
             if(license.features?.manager == true){
                 runOnUiThread { managerModeButton.visibility = View.VISIBLE }
             }
+
+
+            if(license.features == null){
+                license.features = LicenseFeatures()
+                Toast.makeText(applicationContext,"License features are unavailable, assigning defaults." , Toast.LENGTH_LONG).show()
+                CoroutineScope(Dispatchers.IO).launch {
+                    withContext(Dispatchers.Main) {
+                        loggly!!.log(
+                            LogglyBody(
+                                "error",
+                                "license-features",
+                                "licenseKey = ${license.key}, licenseFeatures is null assigned defaults",
+                                null,
+                                null
+                            )
+                        )
+                    }
+                }
+            }
             license.features?.let { assignFeatures(it) }
+
             fetchDeviceMode(credentials)
         }
     }
@@ -998,6 +1119,8 @@ class MainActivity : AppCompatActivity() {
         runOnUiThread {
             var mainRecyclerViewBody = this@MainActivity.findViewById<RecyclerView>(R.id.orderRecyclerView_main)
             mainRecyclerViewBody.setBackgroundColor(Color.parseColor(prefs.licenseFeatures!!.kitchenViewBackgroundColor))
+            var allDayCountBody = this@MainActivity.findViewById<RecyclerView>(R.id.all_day_recycler)
+            allDayCountBody.setBackgroundColor(Color.parseColor((prefs.licenseFeatures!!.kitchenViewAllDayBackgroundColor)))
         }
     }
 
@@ -1107,11 +1230,13 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+
+
     // Open WS for receiving orders
     private fun startWebSocket(credentials: DeviceCredentials, listener: OrderWebSocket) {
         val request = Request.Builder().url(credentials.baseWsUrl).build()
         listener.steveImageView = steve_imageView
-        listener.konfettiView = viewKonfetti
+
         // media player was crashing app previously, plays beep when order comes in
         listener.mediaPlayer = MediaPlayer.create(this, R.raw.beep)
         listener.connectStatus = websocket_status_imageView

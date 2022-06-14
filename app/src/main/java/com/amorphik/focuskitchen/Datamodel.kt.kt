@@ -3,6 +3,12 @@ package com.amorphik.focuskitchen
 import com.google.gson.annotations.SerializedName
 import java.io.Serializable
 
+data class AllDayCountRecord(
+    var menuItemName: String,
+    var count: Float,
+    var displayCount: String
+)
+
 data class CheckDto(
     var employeeId: Int,
     var checkKey: String? = null,
@@ -253,19 +259,18 @@ data class License(
 
 
 data class LicenseFeatures (
-
-    @SerializedName("pay") var pay : Boolean?          = false,
-    @SerializedName("order") var order: Boolean?          = false,
-    @SerializedName("loyaltyTab") var loyaltyTab: Boolean?          = false,
-    @SerializedName("survey") var survey: Boolean?          = false,
-    @SerializedName("loyalty") var loyalty: Boolean?          = false,
-    @SerializedName("timeclock") var timeclock: Boolean?          = false,
-    @SerializedName("manager") var manager: Boolean?          = false,
-    @SerializedName("kiosk") var kiosk                 : Boolean?          = false,
-    @SerializedName("host") var host                  : Boolean?          = false,
-    @SerializedName("kitchen") var kitchen               : Boolean?          = false,
-    @SerializedName("expo") var expo                  : Boolean?          = false,
-    @SerializedName("orderReady") var orderReady            : Boolean?          = false,
+    @SerializedName("pay") var pay : Boolean? = false,
+    @SerializedName("order") var order: Boolean? = false,
+    @SerializedName("loyaltyTab") var loyaltyTab: Boolean? = false,
+    @SerializedName("survey") var survey: Boolean? = false,
+    @SerializedName("loyalty") var loyalty: Boolean? = false,
+    @SerializedName("timeclock") var timeclock: Boolean? = false,
+    @SerializedName("manager") var manager: Boolean? = false,
+    @SerializedName("kiosk") var kiosk: Boolean? = false,
+    @SerializedName("host") var host: Boolean? = false,
+    @SerializedName("kitchen") var kitchen: Boolean? = false,
+    @SerializedName("expo") var expo: Boolean? = false,
+    @SerializedName("orderReady") var orderReady: Boolean? = false,
     @SerializedName("onServerPay") var onServerPay           : Boolean?          = false,
     @SerializedName("nfcPay") var nfcPay                : Boolean?          = false,
     @SerializedName("giftCardPay") var giftCardPay           : Boolean?          = false,
@@ -291,7 +296,8 @@ data class LicenseFeatures (
     @SerializedName("kitchenItemFontColor") var kitchenItemFontColor: String? = "#FFFFFF",
     @SerializedName("kitchenModifierFontColor") var kitchenModifierFontColor: String? = "#00FF00",
     @SerializedName("kitchenHeaderFontColor") var kitchenHeaderFontColor: String? = "#FFFFFF",
-    @SerializedName("kitchenViewBackgroundColor") var kitchenViewBackgroundColor: String? = "#000000"
+    @SerializedName("kitchenViewBackgroundColor") var kitchenViewBackgroundColor: String? = "#000000",
+    @SerializedName("kitchenViewAllDayBackgroundColor") var kitchenViewAllDayBackgroundColor: String? = "#FFFFFF"
 )
 
 

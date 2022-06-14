@@ -9,27 +9,31 @@ import android.os.Looper
 import android.util.Log
 import android.widget.ImageView
 import android.widget.Toast
+import com.amorphik.focuskitchen.allDayCount.AllDayCountAdapter
 import com.beust.klaxon.Klaxon
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import nl.dionsegijn.konfetti.KonfettiView
-import nl.dionsegijn.konfetti.models.Size
+import nl.dionsegijn.konfetti.compose.KonfettiView
+import nl.dionsegijn.konfetti.core.Party
+import nl.dionsegijn.konfetti.core.emitter.Emitter
+//import nl.dionsegijn.konfetti.compose.KonfettiView
+//import nl.dionsegijn.konfetti.models.Size
 import okhttp3.*
 import okio.ByteString
-
-
-
-
+import java.lang.reflect.Modifier
+import java.util.concurrent.TimeUnit
 
 class OrderWebSocket(private val credentials: DeviceCredentials,
                      private val adapter: OrderAdapter,
-                     private val context: Context) : WebSocketListener() {
+                     private val context: Context,
+                     private val mainActivity: MainActivity
+) : WebSocketListener() {
 
     lateinit var steveImageView: ImageView
-    lateinit var konfettiView: KonfettiView
+//    lateinit var konfettiView: nl.dionsegijn.konfetti.compose
     lateinit var mediaPlayer: MediaPlayer
     lateinit var connectStatus: ImageView
     lateinit var client: OkHttpClient
@@ -68,11 +72,12 @@ class OrderWebSocket(private val credentials: DeviceCredentials,
             connectStatus.setBackgroundResource(R.drawable.cross)
         }
 
-        println("closed: $reason")
+        Logger.d("orderSocket","closed $reason")
     }
 
     override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
-        println("closing: $reason")
+
+        Logger.d("orderSocket","closing $reason")
         val handler = Handler(Looper.getMainLooper())
         handler.post {
             connectStatus.setBackgroundResource(R.drawable.cross)
@@ -142,6 +147,17 @@ class OrderWebSocket(private val credentials: DeviceCredentials,
                     Logger.d("printorder-priority","Remote order priority request ${printerMessage["key"]}")
                     remotePriorityOrder(printerMessage["key"]!!)
                 }
+                "printorder-smschange" ->{
+                    Logger.d("printorder-orderReadySms","Notifictaion of SMS change ${printerMessage["key"]}: ${printerMessage["meta"]}")
+                    if(printerMessage["key"] != null && printerMessage["meta"] != null){
+                        updateOrderReadySms(printerMessage["key"]!!, printerMessage["meta"]!!)
+                    }
+
+                }
+                "printorder-confetti" ->{
+                    Logger.d("printorder-confetti", "Celebrate good times!")
+                    konfetti()
+                }
             }
         }
     }
@@ -173,6 +189,9 @@ class OrderWebSocket(private val credentials: DeviceCredentials,
         }
         if(printJob["orderReadySmsCount"] != null){
             order!!.smsCount = printJob["orderReadySmsCount"] as Int?
+        }
+        if(printJob["orderHeaderColor"] != null){
+            order!!.orderHeaderColor = printJob["orderHeaderColor"].toString()
         }
         println("passed order")
 
@@ -256,10 +275,20 @@ class OrderWebSocket(private val credentials: DeviceCredentials,
     private fun addOrderToAdapter(order: Order) {
         try{
             OrdersModel.addOrder(order)
-
             saveOrdersToDevice()
             playSound()
+
+            order.items.forEach { item ->
+                if(item.level == 0){
+                    Logger.d("allDay","before add item ${item.itemName}")
+                    val itemName = item.remoteName.subSequence(2, item.remoteName.length).toString()
+                    mainActivity.runOnUiThread(Runnable {
+                        mainActivity.allDayCountAddItem(itemName, item.quantity)
+                    })
+                }
+            }
         }catch(e: Exception){
+            Logger.e("addPrintOrderError","${e.message}",false)
             CoroutineScope(Dispatchers.IO).launch {
                 withContext(Dispatchers.Main) {
                     try{
@@ -340,26 +369,49 @@ class OrderWebSocket(private val credentials: DeviceCredentials,
         webSocket.send(message)
 
     }
-    private fun steve() {
+
+    private fun updateOrderReadySms(printOrderKey: String, orderReadySms: String){
+        if(adapter.dataSet != null && adapter.dataSet.size > 0){
+            val order = adapter.dataSet.find { i -> i.orderKey == printOrderKey }
+            if(order != null && (order.orderReadySms == null || order.orderReadySms != orderReadySms)){
+                order.orderReadySms = orderReadySms
+                adapter.notifyDataSetChanged()
+                Logger.d("printorder-orderReadySms","updated printOrder")
+            }
+        }
+
+    }
+
+    private fun konfetti(){
         val handler = Handler(Looper.getMainLooper())
         handler.post {
-            steveImageView.animate().alpha(1f).setDuration(1000L).start()
-            konfettiView.build()
-                .addColors(Color.YELLOW, Color.GREEN, Color.MAGENTA, Color.BLUE)
-                .setDirection(0.0, 359.0)
-                .setSpeed(1f, 10f)
-                .setFadeOutEnabled(true)
-                .setTimeToLive(2000L)
-                .addShapes(nl.dionsegijn.konfetti.models.Shape.RECT, nl.dionsegijn.konfetti.models.Shape.CIRCLE)
-                .addSizes(Size(12))
-                .setPosition(1000f, 1000f, -50f, -50f)
-                .streamFor(100, 15000L)
-
+            val mainActivity = MainActivity()
+            mainActivity.konfettiView.start(session.party)
         }
-        handler.postDelayed({
-            steveImageView.animate().alpha(0f).setDuration(1000L).start()
-        }, 16000)
+
     }
+
+//    private fun steve() {
+//        val handler = Handler(Looper.getMainLooper())
+//        handler.post {
+//            steveImageView.animate().alpha(1f).setDuration(1000L).start()
+//            val konfettiView = KonfettiView(modifier = Modifier.)
+//            konfettiView.build()
+//                .addColors(Color.YELLOW, Color.GREEN, Color.MAGENTA, Color.BLUE)
+//                .setDirection(0.0, 359.0)
+//                .setSpeed(1f, 10f)
+//                .setFadeOutEnabled(true)
+//                .setTimeToLive(2000L)
+//                .addShapes(nl.dionsegijn.konfetti.models.Shape.RECT, nl.dionsegijn.konfetti.models.Shape.CIRCLE)
+//                .addSizes(Size(12))
+//                .setPosition(1000f, 1000f, -50f, -50f)
+//                .streamFor(100, 15000L)
+//
+//        }
+//        handler.postDelayed({
+//            steveImageView.animate().alpha(0f).setDuration(1000L).start()
+//        }, 16000)
+//    }
 
     companion object{
         val BROADCAST_ACTION = "com.amorphik.focuskitchen"

@@ -105,7 +105,7 @@ class Prefs(context: Context) {
             return if(json!!.isNotEmpty()){
                 Gson().fromJson(json, LicenseFeatures::class.java)
             } else{
-                null
+                return null
             }
         }
     set(value) = prefs.edit().putString("licenseFeatures", Gson().toJson(value)).apply()
