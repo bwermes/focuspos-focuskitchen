@@ -16,8 +16,8 @@ class OnSwipeTouchListener(context: Context, val onGesture: (gestureCode: Int) -
     }
 
     private inner class GestureListener: GestureDetector.SimpleOnGestureListener() {
-        private val SWIPE_DISTANCE_THRESHOLD = 200
-        private val SWIPE_VELOCITY_THRESHOLD = 3500
+        private val SWIPE_DISTANCE_THRESHOLD = 100
+        private val SWIPE_VELOCITY_THRESHOLD = 200
 
         override fun onDown(e: MotionEvent?): Boolean {
             return false
@@ -32,15 +32,24 @@ class OnSwipeTouchListener(context: Context, val onGesture: (gestureCode: Int) -
             val distanceX = e2!!.x - e1!!.x
             val distanceY = e2.y - e1.y
 
+//            Logger.d("recallSwipe","x = $distanceX | y = $distanceY")
+//            Logger.d("recallSwipe","velocity X = $velocityX | ")
+//
+//            Logger.d("recallSwipe","abs x = ${abs(distanceX)} | y = ${abs(distanceY)}")
+//            Logger.d("recallSwipe","velocity X = ${abs(velocityX)}")
+
+
             if (abs(distanceX) > abs(distanceY) &&
                 abs(distanceX) > SWIPE_DISTANCE_THRESHOLD &&
                 abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+//                    Logger.d("recallSwipe","gesture passes check")
 
                 val gesture = when (distanceX > 0) {
                     true -> SWIPE_RIGHT
                     false -> SWIPE_LEFT
                 }
 
+//                Logger.d("recallSwipe","Gesture = $gesture")
                 onGesture.invoke(gesture)
                 return false
             }

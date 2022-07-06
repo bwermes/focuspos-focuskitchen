@@ -134,10 +134,10 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-        val allDayButton = this.findViewById<View>(R.id.main_activity_button_all_day)
-        allDayButton.setOnClickListener { it ->
-            buildMainUi(!displayAllDayCount)
-        }
+//        val allDayButton = this.findViewById<View>(R.id.main_activity_button_all_day)
+//        allDayButton.setOnClickListener { it ->
+//            buildMainUi(!displayAllDayCount)
+//        }
 
 
 
@@ -417,6 +417,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkDeviceRegistration() {
         val deviceWasRegistered = verifyCredentials(credentials)
+        println("device registered $deviceWasRegistered")
+        Log.d("license","device registered $deviceWasRegistered")
         if (!deviceWasRegistered) {
 
             // Let user know we are looking for a license.
@@ -964,7 +966,8 @@ class MainActivity : AppCompatActivity() {
         //Returns true if credentials were found
 
         if(credentials.licenseSecret == "") {
-            println("license secret null, credentials unverified")
+            Log.d("license","license secret null, credentials unverified")
+
             return false
         } else {
             val signature = AuthGenerator.generateHash("${credentials.licenseKey}:${credentials.venueKey}:${credentials.macAddress}", credentials.licenseSecret)
@@ -979,7 +982,7 @@ class MainActivity : AppCompatActivity() {
             prefs.authToken = signature
 
 
-            Log.d("license","authToken = ${prefs.authToken}")
+            Log.d("license","license auth token generated")
 
             val payload = """{
                                 "key": "${credentials.licenseKey}",
@@ -999,7 +1002,7 @@ class MainActivity : AppCompatActivity() {
 
     // Verify license is valid
     private fun handleVerification(call: Call, response: Response?, responseBody: String) {
-        Logger.d("licenseCheck","${responseBody.toString()}")
+        Log.d("license","${responseBody.toString()}")
         if (response == null || response != null && response.code >= 400) {
             if (response != null) {
                 Utility.clearLicenseInfo(credentials)
@@ -1009,7 +1012,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val license = Klaxon().parse<License>(responseBody)
-        println("verification response: $license")
+        Log.d("license","verification response: $license")
         if (!(license!!.active as Boolean)) {
             openDialog("DISABLED", 0)
         } else {

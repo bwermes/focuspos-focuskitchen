@@ -72,6 +72,13 @@ interface ApiService {
         @Path("printOrderKey") printOrderKey: String
     ): Order
 
+    @POST("v2/utility/{venueKey}/log/{level}")
+    suspend fun logToFocusLink(
+        @Path("venueKey") venueKey: Int,
+        @Path("level") level: String = "Error",
+        @Body payload: LogPayload
+    )
+
     companion object {
         fun create(ctx: Context): ApiService {
             var baseUrl = ctx.resources.getString(R.string.api_url_prod)

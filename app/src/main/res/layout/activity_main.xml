@@ -161,7 +161,9 @@
         android:layout_marginTop="12dp"
         android:layout_marginBottom="5dp"
         android:layout_marginEnd="10dp"
-        android:src="@drawable/tally"/>
+        android:src="@drawable/tally"
+        android:visibility="gone"
+        />
 
     <nl.dionsegijn.konfetti.xml.KonfettiView
         android:id="@+id/viewKonfetti"

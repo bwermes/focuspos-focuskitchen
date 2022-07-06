@@ -217,6 +217,11 @@ class OrderWebSocket(private val credentials: DeviceCredentials,
             }
         }
 
+        if(adapter.dataSet.size > 0 && adapter.dataSet.all { i -> i.orderKey == key }){
+            return
+        }
+
+
         val url = "${credentials.baseApiUrl}stores/${credentials.venueKey}/printorders"
         val headerName = "Authorization"
         val headerBody = credentials.generateDeviceLicenseHeader()
@@ -278,15 +283,16 @@ class OrderWebSocket(private val credentials: DeviceCredentials,
             saveOrdersToDevice()
             playSound()
 
-            order.items.forEach { item ->
-                if(item.level == 0){
-                    Logger.d("allDay","before add item ${item.itemName}")
-                    val itemName = item.remoteName.subSequence(2, item.remoteName.length).toString()
-                    mainActivity.runOnUiThread(Runnable {
-                        mainActivity.allDayCountAddItem(itemName, item.quantity)
-                    })
-                }
-            }
+//            order.items.forEach { item ->
+//                if(item.level == 0){
+//                    Logger.d("allDay","before add item ${item.itemName}")
+//                    val itemName = item.remoteName.subSequence(2, item.remoteName.length).toString()
+//                    mainActivity.runOnUiThread(Runnable {
+//                        mainActivity.allDayCountAddItem(itemName, item.quantity)
+//                    })
+//                }
+//            }
+
         }catch(e: Exception){
             Logger.e("addPrintOrderError","${e.message}",false)
             CoroutineScope(Dispatchers.IO).launch {

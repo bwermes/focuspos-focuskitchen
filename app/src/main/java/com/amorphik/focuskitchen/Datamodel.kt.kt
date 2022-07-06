@@ -2,6 +2,8 @@ package com.amorphik.focuskitchen
 
 import com.google.gson.annotations.SerializedName
 import java.io.Serializable
+import java.util.*
+import kotlin.collections.ArrayList
 
 data class AllDayCountRecord(
     var menuItemName: String,
@@ -174,6 +176,12 @@ data class EmployeeAvailableJob (
     val Rate : Double,
     val ID : Int,
     val Job : JobTypes
+): Serializable
+
+data class LogPayload(
+    var message: String,
+    var context: String,
+    var dateTime: String
 ): Serializable
 
 data class JobTypes (

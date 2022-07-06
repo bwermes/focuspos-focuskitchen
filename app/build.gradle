@@ -19,8 +19,8 @@ android {
         applicationId "com.amorphik.focuskitchen"
         minSdkVersion 21
         targetSdkVersion 31
-        versionCode 220614
-        versionName "1.16"
+        versionCode 220706
+        versionName "1.17"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {

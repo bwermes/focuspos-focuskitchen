@@ -36,6 +36,7 @@ import nl.dionsegijn.konfetti.core.Party
 import nl.dionsegijn.konfetti.core.Position
 import nl.dionsegijn.konfetti.core.emitter.Emitter
 import java.security.AccessController.getContext
+import java.text.SimpleDateFormat
 import java.util.concurrent.TimeUnit
 
 class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
@@ -447,8 +448,22 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
             }
         }
         catch(e: Exception){
+            var errorMessage = e.message
+
             CoroutineScope(Dispatchers.IO).launch {
                 withContext(Dispatchers.Main) {
+                    try{
+                        val sdf = SimpleDateFormat("dd/M/yyyy hh:mm:ss")
+                        val currentDate = sdf.format(Date())
+                        if(errorMessage == null){
+                            errorMessage = "bump error no message"
+                        }
+                        val errorContext: LogPayload = LogPayload(message = errorMessage!!, "bumpOrder", currentDate)
+                        api!!.logToFocusLink(credentials.venueKey.toInt(), "error", errorContext)
+                    }catch(e: Exception){
+
+                    }
+
                     try{
                         loggly!!.log(
                             LogglyBody(
@@ -456,7 +471,7 @@ class OrderAdapter : RecyclerView.Adapter<OrderViewHolder>() {
                                 "bumpOrderError",
                                 null,
                                 orderKey,
-                                Gson().toJson(e.message)
+                                errorMessage
                             )
                         )
                     }

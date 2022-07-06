@@ -3,8 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@android:color/black">
+    android:layout_height="wrap_content">
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/guide_checkview_h20"
@@ -13,7 +12,6 @@
         android:orientation="horizontal"
         app:layout_constraintGuide_percent="0.12"/>
 
-
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -21,7 +19,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:paddingBottom="10dp"
-        android:background="@color/colorFocusLinkSecondaryGray">
+        android:background="@color/colorFocusLinkWhite">
 
         <TextView
             android:id="@+id/text_check_checkNumber"
@@ -32,7 +30,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             android:text="@string/check_number"
-            android:textColor="@color/white"/>
+            android:textColor="@color/colorFocusLinkBlack"/>
 
         <TextView
             android:id="@+id/text_check_tableName"
@@ -44,7 +42,7 @@
             app:layout_constraintTop_toTopOf="parent"
             android:gravity="right"
             android:text="@string/table_name"
-            android:textColor="@color/white"/>
+            android:textColor="@color/colorFocusLinkBlack"/>
 
         <TextView
             android:id="@+id/text_check_ownerName"
@@ -55,7 +53,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/text_check_checkNumber"
             android:text="@string/owner_name"
-            android:textColor="@color/white"/>
+            android:textColor="@color/colorFocusLinkBlack"/>
 
         <TextView
             android:id="@+id/text_check_guestCount"
@@ -67,7 +65,7 @@
             app:layout_constraintTop_toBottomOf="@id/text_check_tableName"
             android:gravity="right"
             android:text="@string/guest_count"
-            android:textColor="@color/white"/>
+            android:textColor="@color/colorFocusLinkBlack"/>
 
         <TextView
             android:id="@+id/text_check_dateTimeOpened"
@@ -78,7 +76,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/text_check_ownerName"
             android:text="@string/value"
-            android:textColor="@color/white"/>
+            android:textColor="@color/colorFocusLinkBlack"/>
 
         <TextView
             android:id="@+id/text_check_seatCount"
@@ -90,7 +88,14 @@
             app:layout_constraintTop_toBottomOf="@id/text_check_guestCount"
             android:gravity="right"
             android:text="@string/check_seat_count"
-            android:textColor="@color/white"/>
+            android:textColor="@color/colorFocusLinkBlack"/>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="5dp"
+            android:background="@color/colorFocusLinkSecondaryGray"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
