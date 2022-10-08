@@ -33,6 +33,10 @@ import nl.dionsegijn.konfetti.compose.KonfettiView
 import nl.dionsegijn.konfetti.core.Party
 import nl.dionsegijn.konfetti.core.emitter.Emitter
 import java.util.concurrent.TimeUnit
+import android.content.pm.PackageManager
+
+
+
 
 
 object Utility {

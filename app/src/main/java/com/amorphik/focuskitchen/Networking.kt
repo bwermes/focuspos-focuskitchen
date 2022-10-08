@@ -1,5 +1,7 @@
 package com.amorphik.focuskitchen
 
+import android.util.Log
+import android.widget.Toast
 import okhttp3.*
 import java.io.IOException
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -32,12 +34,12 @@ class       Networking {
 
             client.newCall(request).enqueue(object : Callback {
                 override fun onResponse(call: Call, response: Response) {
-                    if (response.code != 200) {
-                        println("${response.code} for GET $url")
-                    } else {
-                        println("${response.code} OK for GET $url")
-                    }
-
+//                    if (response.code == 200 || response.code == 201) {
+//
+//                    } else {
+//                        Log.d("fetchJson","$url - ${response.code} for GET")
+//                    }
+                    Log.d("fetchJson","$url - ${response.code} for GET")
                     val responseBody = response.body?.string()
                     if (responseBody != null) {
                         performOnCallback(call, response, responseBody)
@@ -62,7 +64,7 @@ class       Networking {
                 .header(headerName, headerValue)
                 .method("POST", requestBody)
                 .build()
-            println("POST $url")
+            Log.d("networking-postData","POST $url")
 
             val client = OkHttpClient()
             client.newCall(request).enqueue(object : Callback {
@@ -72,17 +74,18 @@ class       Networking {
 //                        performOnCallback(call, response, responseBody)
 //                    }
                     if (response.code != 200) {
-                        println("${response.code} for POST $url\nPayload:\n$payload")
+                        Log.d("networking-postData","${response.code} for POST $url\nPayload:\n$payload")
                     } else {
-                        println("${response.code} OK for POST $url")
+                        Log.d("networking-postData","${response.code} OK for POST $url")
                     }
 
                     performOnCallback(call, response, responseBody!!)
                 }
 
                 override fun onFailure(call: Call, e: IOException) {
-                    println(e)
-                    println("Failed on POST to $url")
+                    Log.e("networking-postData","${e}")
+                    Log.d("networking-postData","${e}")
+                    Log.d("networking-postData","Failed on POST to $url")
                     performOnCallback(call, null, e.message.toString())
                 }
             })

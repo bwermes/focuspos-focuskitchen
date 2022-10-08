@@ -179,7 +179,30 @@ class OrderWebSocket(private val credentials: DeviceCredentials,
         //PUT print job received
         println("print response: $responseBody")
 
-        val printJob = Klaxon().parse<Map<String, Any>>(responseBody)
+        var printJob: Map<String, Any> = mapOf()
+        try{
+            printJob = Klaxon().parse<Map<String, Any>>(responseBody)!!
+        }catch(error: java.lang.Exception){
+            CoroutineScope(Dispatchers.IO).launch {
+                withContext(Dispatchers.Main) {
+                    try{
+                        loggly!!.log(
+                            LogglyBody(
+                                "error",
+                                "printOrderReceived-parseError",
+                                responseBody
+                            )
+                        )
+                    }
+                    catch(e: Exception){}
+                }
+            }
+            intent!!.putExtra("source",BroadcastIntentSource.ORDERERROR.value)
+            intent!!.putExtra("printOrderKey","noOrderKey")
+            context.sendBroadcast(intent)
+            return
+        }
+
         val key = printJob!!["key"] as String
         val payload = printJob["payload"] as String
         println("passed payload")
@@ -319,7 +342,7 @@ class OrderWebSocket(private val credentials: DeviceCredentials,
     private fun remoteBumpOrder(printOrderKey: String, checkId: String, bumpFromStationName: String){
         if(adapter.dataSet.any{i -> i.orderKey == printOrderKey}){
             Thread.sleep(1500)
-            intent!!.putExtra("source","bumpOrder")
+            intent!!.putExtra("source",BroadcastIntentSource.BUMPORDER.value)
             intent!!.putExtra("printOrderKey",printOrderKey)
             context.sendBroadcast(intent)
         } else{
@@ -330,7 +353,7 @@ class OrderWebSocket(private val credentials: DeviceCredentials,
     private fun remoteCompleteOrder(printOrderKey: String){
         if(adapter.dataSet.any{i -> i.orderKey == printOrderKey}){
 
-            intent!!.putExtra("source","completeOrder")
+            intent!!.putExtra("source",BroadcastIntentSource.COMPLETEORDER.value)
             intent!!.putExtra("printOrderKey",printOrderKey)
             context.sendBroadcast(intent)
 
@@ -341,7 +364,7 @@ class OrderWebSocket(private val credentials: DeviceCredentials,
 
     private fun remotePriorityOrder(printOrderKey: String){
         if(adapter.dataSet.any{i->i.orderKey == printOrderKey}){
-            intent!!.putExtra("source","priorityOrder")
+            intent!!.putExtra("source",BroadcastIntentSource.PRIORITYORDER.value)
             intent!!.putExtra("printOrderKey",printOrderKey)
             context.sendBroadcast(intent)
         } else{
@@ -423,5 +446,14 @@ class OrderWebSocket(private val credentials: DeviceCredentials,
         val BROADCAST_ACTION = "com.amorphik.focuskitchen"
         val REFRESH_DATASET_MESSAGE = "refreshDataset"
         var intent: Intent? = null
+    }
+
+    enum class BroadcastIntentSource(val value: String){
+        BUMPORDER("bumpOrder"),
+        COMPLETEORDER("completeOrder"),
+        PRIORITYORDER("priorityOrder"),
+        SMSPRINTORDER("smsPrintOrder"),
+        ORDERERROR("orderError"),
+        LICENSEVERIFICATION("licenseVerification")
     }
 }

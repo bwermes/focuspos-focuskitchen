@@ -48,6 +48,14 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
+import android.app.AlarmManager
+
+import android.app.PendingIntent
+
+import android.content.Intent
+
+
+
 
 
 var venueKey: String? = null
@@ -277,17 +285,26 @@ class MainActivity : AppCompatActivity() {
         override fun onReceive(context: Context, intent: Intent) {
             val message = intent.getStringExtra("message")
             Log.d("broadcast","on broadcast receive")
-            Logger.d("smsOrder","in broadcast")
+
             val source = intent.getStringExtra("source");
-            Logger.d("smsOrder","broadcast source ${source}")
+            Log.d("broadcast","broadcast source ${source}")
             when(source){
                 "bumpOrder" -> removeOrderFromAdapter(intent.getStringExtra("printOrderKey")!!)
                 "completeOrder" -> completeOrderOnAdapter(intent.getStringExtra("printOrderKey")!!)
                 "priorityOrder" -> priorityOrder(intent.getStringExtra("printOrderKey")!!)
                 "smsPrintOrder" -> smsPrintOrderPrompt(intent.getStringExtra("printOrderKey")!!, intent.getStringExtra("orderReadySms")!!)
+                "orderError" -> notifyOfOrderError()
+                "licenseVerification" -> reloadActivity()
             }
 
         }
+    }
+
+    private fun reloadActivity(){
+        OrdersModel.orders = mutableListOf<OrderAdapterDataItem>()
+        orderAdapter.notifyDataSetChanged()
+        finish();
+        startActivity(intent)
     }
 
     private fun buildMainUi(showAllDayCount: Boolean){
@@ -324,6 +341,14 @@ class MainActivity : AppCompatActivity() {
             Log.d("printorder-complete","order not found")
         }
 
+    }
+
+    private fun notifyOfOrderError(){
+        runOnUiThread {
+            Toast.makeText(applicationContext, "Error processing order. Please contact support", Toast.LENGTH_LONG).show()
+            val viewHeaderResource = this.findViewById<View>(R.id.view)
+            viewHeaderResource.setBackgroundColor(getResources().getColor(R.color.yellow_danger))
+        }
     }
 
     private fun priorityOrder(printOrderKey: String){
@@ -419,7 +444,7 @@ class MainActivity : AppCompatActivity() {
         val deviceWasRegistered = verifyCredentials(credentials)
         println("device registered $deviceWasRegistered")
         Log.d("license","device registered $deviceWasRegistered")
-        if (!deviceWasRegistered) {
+        if (!deviceWasRegistered && credentials.PREFS_LICENSE_KEY == null && credentials.PREFS_LICENSE_SECRET == null) {
 
             // Let user know we are looking for a license.
             val builder = AlertDialog.Builder(this)
@@ -947,7 +972,9 @@ class MainActivity : AppCompatActivity() {
         registrationDialog.status = status
         registrationDialog.credentials = credentials
         registrationDialog.isCancelable = false
+        registrationDialog.sourceContext = this@MainActivity
         registrationDialog.show(supportFragmentManager, "venueDialog")
+
     }
 
     // Display device details
@@ -961,13 +988,16 @@ class MainActivity : AppCompatActivity() {
         deviceDetailsDialog.websocket = websocket
     }
 
+
     private fun verifyCredentials(credentials: DeviceCredentials) : Boolean {
         //Returns false if no credentials were found
         //Returns true if credentials were found
+        Log.d("license-verifyCred","init")
 
         if(credentials.licenseSecret == "") {
             Log.d("license","license secret null, credentials unverified")
-
+            Utility.clearLicenseInfo(credentials)
+            openDialog(credentials, "UNREGISTERED")
             return false
         } else {
             val signature = AuthGenerator.generateHash("${credentials.licenseKey}:${credentials.venueKey}:${credentials.macAddress}", credentials.licenseSecret)
@@ -981,7 +1011,6 @@ class MainActivity : AppCompatActivity() {
             prefs.licenseVerified = true
             prefs.authToken = signature
 
-
             Log.d("license","license auth token generated")
 
             val payload = """{
@@ -990,6 +1019,8 @@ class MainActivity : AppCompatActivity() {
                                 "softwareVersion": "${BuildConfig.VERSION_NAME}",
                                 "softwareVersionCode": "${BuildConfig.VERSION_CODE}"
                              }"""
+
+            Log.d("license-payload","${payload}")
 
             Networking.postData(url = "${credentials.baseApiUrl}licenses/verify",
                 headerName = "Authorization",
@@ -1002,17 +1033,23 @@ class MainActivity : AppCompatActivity() {
 
     // Verify license is valid
     private fun handleVerification(call: Call, response: Response?, responseBody: String) {
-        Log.d("license","${responseBody.toString()}")
-        if (response == null || response != null && response.code >= 400) {
-            if (response != null) {
-                Utility.clearLicenseInfo(credentials)
-                openDialog(credentials, "UNREGISTERED")
-            }
+//        Log.d("license","${responseBody.toString()}")
+        if (response != null) {
+            Log.d("license-handleVerifi","Response code = ${response.code}")
+        }
+
+        if (response != null && response.code === 401) {
+            //Utility.clearLicenseInfo(credentials)
+            openDialog(credentials, "LICENSEVERIFYERROR")
+            return
+        }
+
+        if (response == null) {
             return
         }
 
         val license = Klaxon().parse<License>(responseBody)
-        Log.d("license","verification response: $license")
+        Log.d("license-verification","verification response: $license")
         if (!(license!!.active as Boolean)) {
             openDialog("DISABLED", 0)
         } else {

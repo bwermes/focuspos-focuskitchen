@@ -3,6 +3,7 @@ package com.amorphik.focuskitchen
 import android.app.AlertDialog
 import android.app.Dialog
 import android.content.Context
+import android.content.Intent
 import android.content.res.Resources
 import android.os.Bundle
 import android.os.Handler
@@ -35,6 +36,7 @@ class VenueDialog: AppCompatDialogFragment() {
     private var dialogView: View? = null
     private lateinit var licenseList: List<VenueLicense>
     private lateinit var res: Resources
+    lateinit var sourceContext: Context
 
     lateinit var credentials: DeviceCredentials
     lateinit var status: String
@@ -67,12 +69,77 @@ class VenueDialog: AppCompatDialogFragment() {
         dialog.setOnShowListener {
             when (status) {
                 "UNREGISTERED" -> showVenueKeyPrompt()
+                "LICENSEVERIFYERROR" -> showLicenseErrorNotification()
                 "DISABLED" -> showMessage("License Inactive", "Contact your Focus dealer.", "")
                 "ERROR" -> showMessage("License Verification Failed ($errorCode)", "Contact your Focus dealer.", "")
             }
         }
 
         return dialog
+    }
+
+    private fun showLicenseErrorNotification(){
+        dialog.setTitle("Error verifying license.")
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).visibility = Button.VISIBLE
+        spinner.visibility = ProgressBar.GONE
+        venueText.inputType = InputType.TYPE_CLASS_NUMBER
+        venueText.hint = "ex: 1234"
+        venueText.visibility = EditText.GONE
+        licenseText.visibility = TextView.GONE
+        licenseText.text = ""
+
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).text = "Clear license"
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).visibility = View.VISIBLE
+
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener {
+            Utility.clearLicenseInfo(credentials)
+            val intent = Intent(OrderWebSocket.BROADCAST_ACTION)
+            intent.putExtra("source",OrderWebSocket.BroadcastIntentSource.LICENSEVERIFICATION.value)
+            sourceContext.sendBroadcast(intent)
+            dialog.dismiss()
+        }
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).text = "Retry"
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            // Attempt to find licenses with user input
+            val signature = AuthGenerator.generateHash("${credentials.licenseKey}:${credentials.venueKey}:${credentials.macAddress}", credentials.licenseSecret)
+
+            prefs.license = License(
+                key = credentials.licenseKey,
+                secret = credentials.licenseSecret,
+                venueKey = credentials.venueKey.toInt()
+            )
+            prefs.venueKey = credentials.venueKey.toInt()
+            prefs.licenseVerified = true
+            prefs.authToken = signature
+
+            Log.d("license","license auth token generated")
+
+            val payload = """{
+                                "key": "${credentials.licenseKey}",
+                                "signature": "$signature",
+                                "softwareVersion": "${BuildConfig.VERSION_NAME}",
+                                "softwareVersionCode": "${BuildConfig.VERSION_CODE}"
+                             }"""
+
+            Log.d("license-payload","${payload}")
+
+            Networking.postData(url = "${credentials.baseApiUrl}licenses/verify",
+                headerName = "Authorization",
+                headerValue = credentials.generateDeviceLicenseHeader(),
+                payload = payload,
+                performOnCallback = ::licenseVerification)
+        }
+    }
+
+    private fun licenseVerification(call: Call, response: Response?, responseBody: String){
+        if(response != null && response.code != 401){
+            val intent = Intent(OrderWebSocket.BROADCAST_ACTION)
+            intent.putExtra("source",OrderWebSocket.BroadcastIntentSource.LICENSEVERIFICATION.value)
+            sourceContext.sendBroadcast(intent)
+            dialog.dismiss()
+        }
     }
 
     // Request venue key from user
