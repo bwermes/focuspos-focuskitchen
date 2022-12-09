@@ -180,8 +180,97 @@ class OrderWebSocket(private val credentials: DeviceCredentials,
         println("print response: $responseBody")
 
         var printJob: Map<String, Any> = mapOf()
+        var logLevel: String = "info";
         try{
             printJob = Klaxon().parse<Map<String, Any>>(responseBody)!!
+            val key = printJob!!["key"] as String
+            val payload = printJob["payload"] as String
+            println("passed payload")
+            val order = Klaxon().parse<Order>(payload)
+            if(printJob["orderReadySms"] != null){
+                order!!.orderReadySms = printJob["orderReadySms"].toString()
+            }
+            if(printJob["orderReadySmsCount"] != null){
+                order!!.smsCount = printJob["orderReadySmsCount"] as Int?
+            }
+            if(printJob["orderHeaderColor"] != null){
+                order!!.orderHeaderColor = printJob["orderHeaderColor"].toString()
+            }
+            println("passed order")
+
+            if(credentials.printerNum != "" && (com.amorphik.focuskitchen.printerId == null || com.amorphik.focuskitchen.printerId == "")){
+                com.amorphik.focuskitchen.printerId = credentials.printerNum
+            }
+
+            if(adapter.dataSet.size > 0 && adapter.dataSet.all { i -> i.orderKey == key }){
+                return
+            }
+
+            val url = "${credentials.baseApiUrl}stores/${credentials.venueKey}/printorders"
+            val headerName = "Authorization"
+            val headerBody = credentials.generateDeviceLicenseHeader()
+            var putPayload = """{
+                                "key": "$key",
+                                "status": "displayed"
+                            }"""
+
+
+            if (order != null) {
+                // PUT Print job successful
+                order.key = key
+                addOrderToAdapter(order)
+
+                val handler = Handler(Looper.getMainLooper())
+                handler.post{
+                    adapter.notifyDataSetChanged()
+                }
+
+                Networking.putData(url, headerName, headerBody, putPayload) { _,_,_ -> }
+
+                CoroutineScope(Dispatchers.IO).launch {
+                    withContext(Dispatchers.Main) {
+                        try{
+                            loggly!!.log(
+                                LogglyBody(
+                                    logLevel,
+                                    "printOrderReceived",
+                                    Gson().toJson(order),
+                                    order?.check
+                                )
+                            )
+                        }
+                        catch(e: Exception){}
+
+                    }
+                }
+            } else {
+                // PUT Print job error
+                putPayload = """{
+                                "key": "$key",
+                                "status": "error",
+                                "error": "parsing-error"
+                            }"""
+
+                logLevel = "error"
+                CoroutineScope(Dispatchers.IO).launch {
+                    withContext(Dispatchers.Main) {
+                        try{
+                            loggly!!.log(
+                                LogglyBody(
+                                    "error",
+                                    "printOrderReceived",
+                                    credentials.venueKey,
+                                    Gson().toJson(order),
+                                    key
+                                )
+                            )
+                        }
+                        catch(e: Exception){}
+
+                    }
+                }
+                Networking.putData(url, headerName, headerBody, putPayload) { _,_,_ -> }
+            }
         }catch(error: java.lang.Exception){
             CoroutineScope(Dispatchers.IO).launch {
                 withContext(Dispatchers.Main) {
@@ -189,7 +278,7 @@ class OrderWebSocket(private val credentials: DeviceCredentials,
                         loggly!!.log(
                             LogglyBody(
                                 "error",
-                                "printOrderReceived-parseError",
+                                "printOrderReceived",
                                 responseBody
                             )
                         )
@@ -201,102 +290,6 @@ class OrderWebSocket(private val credentials: DeviceCredentials,
             intent!!.putExtra("printOrderKey","noOrderKey")
             context.sendBroadcast(intent)
             return
-        }
-
-        val key = printJob!!["key"] as String
-        val payload = printJob["payload"] as String
-        println("passed payload")
-        val order = Klaxon().parse<Order>(payload)
-        if(printJob["orderReadySms"] != null){
-            order!!.orderReadySms = printJob["orderReadySms"].toString()
-        }
-        if(printJob["orderReadySmsCount"] != null){
-            order!!.smsCount = printJob["orderReadySmsCount"] as Int?
-        }
-        if(printJob["orderHeaderColor"] != null){
-            order!!.orderHeaderColor = printJob["orderHeaderColor"].toString()
-        }
-        println("passed order")
-
-
-        if(credentials.printerNum != "" && (com.amorphik.focuskitchen.printerId == null || com.amorphik.focuskitchen.printerId == "")){
-            com.amorphik.focuskitchen.printerId = credentials.printerNum
-        }
-
-        CoroutineScope(Dispatchers.IO).launch {
-            withContext(Dispatchers.Main) {
-                try{
-                    loggly!!.log(
-                        LogglyBody(
-                            "info",
-                            "printOrderReceived",
-                            Gson().toJson(order),
-                            order?.check
-                        )
-                    )
-                }
-                catch(e: Exception){}
-
-            }
-        }
-
-        if(adapter.dataSet.size > 0 && adapter.dataSet.all { i -> i.orderKey == key }){
-            return
-        }
-
-
-        val url = "${credentials.baseApiUrl}stores/${credentials.venueKey}/printorders"
-        val headerName = "Authorization"
-        val headerBody = credentials.generateDeviceLicenseHeader()
-        var putPayload = """{
-                                "key": "$key",
-                                "status": "consumed"
-                            }"""
-
-        Networking.putData(url, headerName, headerBody, putPayload) { _,_,_ -> }
-
-        if (order != null) {
-            // PUT Print job successful
-            order.key = key
-            addOrderToAdapter(order)
-
-            val handler = Handler(Looper.getMainLooper())
-            handler.post{
-                adapter.notifyDataSetChanged()
-            }
-
-            putPayload = """{
-                                "key": "$key",
-                                "status": "displayed"
-                            }"""
-            Networking.putData(url, headerName, headerBody, putPayload) { _,_,_ -> }
-
-        } else {
-            // PUT Print job error
-            putPayload = """{
-                                "key": "$key",
-                                "status": "error",
-                                "error": "parsing-error"
-                            }"""
-
-            CoroutineScope(Dispatchers.IO).launch {
-                withContext(Dispatchers.Main) {
-                    try{
-                        loggly!!.log(
-                            LogglyBody(
-                                "error",
-                                "parseError",
-                                credentials.venueKey,
-                                Gson().toJson(order),
-                                key
-                            )
-                        )
-                    }
-                    catch(e: Exception){}
-
-                }
-            }
-            Networking.putData(url, headerName, headerBody, putPayload) { _,_,_ -> }
         }
     }
 

@@ -119,5 +119,9 @@ class OrdersModel {
             };
             return false
         }
+
+        fun validateExistingOrderPresent(printOrderKey: String): Boolean{
+            return orders.all { it.orderKey === printOrderKey }
+        }
     }
 }
