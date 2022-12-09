@@ -224,7 +224,7 @@ class OrderWebSocket(private val credentials: DeviceCredentials,
                 handler.post{
                     adapter.notifyDataSetChanged()
                 }
-
+                //make call out to FocusLink notifying that order was displayed.
                 Networking.putData(url, headerName, headerBody, putPayload) { _,_,_ -> }
 
                 CoroutineScope(Dispatchers.IO).launch {
